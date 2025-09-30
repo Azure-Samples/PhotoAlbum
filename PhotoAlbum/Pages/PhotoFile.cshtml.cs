@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using PhotoAlbum.Services;
+using Azure.Storage.Blobs;
+using Azure.Identity;
 
 namespace PhotoAlbum.Pages;
 
@@ -12,7 +14,8 @@ public class PhotoFileModel : PageModel
     private readonly IPhotoService _photoService;
     private readonly ILogger<PhotoFileModel> _logger;
     private readonly IConfiguration _configuration;
-    private readonly string _uploadPath;
+    private readonly BlobServiceClient _blobServiceClient;
+    private readonly string _containerName;
 
     /// <summary>
     /// Initializes a new instance of the PhotoFileModel class
@@ -26,7 +29,15 @@ public class PhotoFileModel : PageModel
         _configuration = configuration;
         _logger = logger;
 
-        _uploadPath = _configuration["FileUpload:UploadPath"] ?? "wwwroot/uploads";
+        // Azure Blob Storage configuration
+        var endpoint = _configuration.GetValue<string>("AzureStorageBlob:Endpoint");
+        if (string.IsNullOrEmpty(endpoint))
+        {
+            throw new InvalidOperationException("AzureStorageBlob:Endpoint configuration is required");
+        }
+
+        _blobServiceClient = new BlobServiceClient(new Uri(endpoint), new DefaultAzureCredential());
+        _containerName = _configuration.GetValue<string>("AzureStorageBlob:ContainerName") ?? "photos";
     }
 
     /// <summary>
@@ -52,22 +63,24 @@ public class PhotoFileModel : PageModel
                 return NotFound();
             }
 
-            // Construct the physical file path
-            // photo.FilePath is stored as "/uploads/filename.jpg"
-            // We need to read from "wwwroot/uploads/filename.jpg"
-            var fileName = Path.GetFileName(photo.FilePath);
-            var filePath = Path.Combine(Directory.GetCurrentDirectory(), _uploadPath, fileName);
+            // Get blob container client
+            var containerClient = _blobServiceClient.GetBlobContainerClient(_containerName);
+            var blobClient = containerClient.GetBlobClient(photo.FilePath);
 
-            if (!System.IO.File.Exists(filePath))
+            // Check if blob exists
+            var exists = await blobClient.ExistsAsync();
+            if (!exists.Value)
             {
-                _logger.LogError("Physical file not found for photo ID {PhotoId} at path {FilePath}", id, filePath);
+                _logger.LogError("Blob not found for photo ID {PhotoId} at path {BlobPath}", id, photo.FilePath);
                 return NotFound();
             }
 
-            var fileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
+            // Download blob content
+            var downloadResponse = await blobClient.DownloadContentAsync();
+            var fileBytes = downloadResponse.Value.Content.ToArray();
 
-            _logger.LogDebug("Serving photo ID {PhotoId} ({FileName}, {FileSize} bytes)",
-                id, photo.OriginalFileName, fileBytes.Length);
+            _logger.LogDebug("Serving photo ID {PhotoId} ({FileName}, {FileSize} bytes) from blob {BlobPath}",
+                id, photo.OriginalFileName, fileBytes.Length, photo.FilePath);
 
             // Return the file with appropriate content type and enable caching
             Response.Headers.CacheControl = "public,max-age=31536000"; // Cache for 1 year

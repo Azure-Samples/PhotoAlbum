@@ -2,6 +2,9 @@ using Microsoft.EntityFrameworkCore;
 using PhotoAlbum.Data;
 using PhotoAlbum.Models;
 using SixLabors.ImageSharp;
+using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
+using Azure.Identity;
 
 namespace PhotoAlbum.Services;
 
@@ -13,7 +16,8 @@ public class PhotoService : IPhotoService
     private readonly PhotoAlbumContext _context;
     private readonly IConfiguration _configuration;
     private readonly ILogger<PhotoService> _logger;
-    private readonly string _uploadPath;
+    private readonly BlobServiceClient _blobServiceClient;
+    private readonly string _containerName;
     private readonly long _maxFileSizeBytes;
     private readonly string[] _allowedMimeTypes;
 
@@ -26,7 +30,16 @@ public class PhotoService : IPhotoService
         _configuration = configuration;
         _logger = logger;
 
-        _uploadPath = _configuration["FileUpload:UploadPath"] ?? "wwwroot/uploads";
+        // Azure Blob Storage configuration
+        var endpoint = _configuration.GetValue<string>("AzureStorageBlob:Endpoint");
+        if (string.IsNullOrEmpty(endpoint))
+        {
+            throw new InvalidOperationException("AzureStorageBlob:Endpoint configuration is required");
+        }
+
+        _blobServiceClient = new BlobServiceClient(new Uri(endpoint), new DefaultAzureCredential());
+        _containerName = _configuration.GetValue<string>("AzureStorageBlob:ContainerName") ?? "photos";
+        
         _maxFileSizeBytes = _configuration.GetValue<long>("FileUpload:MaxFileSizeBytes", 10485760);
         _allowedMimeTypes = _configuration.GetSection("FileUpload:AllowedMimeTypes").Get<string[]>()
             ?? new[] { "image/jpeg", "image/png", "image/gif", "image/webp" };
@@ -109,15 +122,7 @@ public class PhotoService : IPhotoService
             // Generate unique filename
             var extension = Path.GetExtension(file.FileName);
             var storedFileName = $"{Guid.NewGuid()}{extension}";
-            var relativePath = $"/uploads/{storedFileName}";
-
-            // Ensure upload directory exists
-            if (!Directory.Exists(_uploadPath))
-            {
-                Directory.CreateDirectory(_uploadPath);
-            }
-
-            var fullPath = Path.Combine(_uploadPath, storedFileName);
+            var blobPath = $"uploads/{storedFileName}";
 
             // Extract image dimensions using ImageSharp
             int? width = null;
@@ -127,9 +132,6 @@ public class PhotoService : IPhotoService
                 using var image = await Image.LoadAsync(file.OpenReadStream());
                 width = image.Width;
                 height = image.Height;
-
-                // Reset stream position for file saving
-                file.OpenReadStream().Position = 0;
             }
             catch (Exception ex)
             {
@@ -137,15 +139,37 @@ public class PhotoService : IPhotoService
                 // Continue without dimensions - not critical
             }
 
-            // Save file to disk
+            // Get blob container client
+            var containerClient = _blobServiceClient.GetBlobContainerClient(_containerName);
+            
+            // Ensure container exists
+            await containerClient.CreateIfNotExistsAsync(PublicAccessType.None);
+
+            // Upload file to Azure Blob Storage
+            var blobClient = containerClient.GetBlobClient(blobPath);
+            
             try
             {
-                using var stream = new FileStream(fullPath, FileMode.Create);
-                await file.CopyToAsync(stream);
+                using var stream = file.OpenReadStream();
+                
+                var uploadOptions = new BlobUploadOptions
+                {
+                    HttpHeaders = new BlobHttpHeaders
+                    {
+                        ContentType = file.ContentType
+                    },
+                    Metadata = new Dictionary<string, string>
+                    {
+                        ["OriginalFileName"] = file.FileName,
+                        ["UploadedAt"] = DateTime.UtcNow.ToString("O")
+                    }
+                };
+
+                await blobClient.UploadAsync(stream, uploadOptions);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error saving file {FileName} to {FullPath}", file.FileName, fullPath);
+                _logger.LogError(ex, "Error uploading file {FileName} to Azure Blob Storage", file.FileName);
                 result.Success = false;
                 result.ErrorMessage = "Error saving file. Please try again.";
                 return result;
@@ -156,7 +180,7 @@ public class PhotoService : IPhotoService
             {
                 OriginalFileName = file.FileName,
                 StoredFileName = storedFileName,
-                FilePath = relativePath,
+                FilePath = blobPath, // Store blob path instead of local path
                 FileSize = file.Length,
                 MimeType = file.ContentType,
                 UploadedAt = DateTime.UtcNow,
@@ -173,22 +197,19 @@ public class PhotoService : IPhotoService
                 result.Success = true;
                 result.PhotoId = photo.Id;
 
-                _logger.LogInformation("Successfully uploaded photo {FileName} with ID {PhotoId}",
-                    file.FileName, photo.Id);
+                _logger.LogInformation("Successfully uploaded photo {FileName} with ID {PhotoId} to blob {BlobPath}",
+                    file.FileName, photo.Id, blobPath);
             }
             catch (Exception ex)
             {
-                // Rollback: Delete file if database save fails
+                // Rollback: Delete blob if database save fails
                 try
                 {
-                    if (File.Exists(fullPath))
-                    {
-                        File.Delete(fullPath);
-                    }
+                    await blobClient.DeleteIfExistsAsync();
                 }
                 catch (Exception deleteEx)
                 {
-                    _logger.LogError(deleteEx, "Error deleting file {FullPath} during rollback", fullPath);
+                    _logger.LogError(deleteEx, "Error deleting blob {BlobPath} during rollback", blobPath);
                 }
 
                 _logger.LogError(ex, "Error saving photo metadata to database for {FileName}", file.FileName);
@@ -220,19 +241,18 @@ public class PhotoService : IPhotoService
                 return false;
             }
 
-            // Delete file from disk
-            var fullPath = Path.Combine(_uploadPath, photo.StoredFileName);
+            // Delete blob from Azure Blob Storage
+            var containerClient = _blobServiceClient.GetBlobContainerClient(_containerName);
+            var blobClient = containerClient.GetBlobClient(photo.FilePath);
+            
             try
             {
-                if (File.Exists(fullPath))
-                {
-                    File.Delete(fullPath);
-                }
+                await blobClient.DeleteIfExistsAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deleting file {FullPath} for photo ID {PhotoId}", fullPath, id);
-                // Continue with database deletion even if file deletion fails
+                _logger.LogError(ex, "Error deleting blob {BlobPath} for photo ID {PhotoId}", photo.FilePath, id);
+                // Continue with database deletion even if blob deletion fails
             }
 
             // Delete from database
