@@ -60,7 +60,7 @@ public class Photo {
      */
     @NotNull
     @Positive
-    @Column(name = "file_size", nullable = false, columnDefinition = "NUMBER(19,0)")
+    @Column(name = "file_size", nullable = false, columnDefinition = "BIGINT")
     private Long fileSize;
 
     /**
