@@ -5,6 +5,8 @@ using Microsoft.Extensions.Logging;
 using PhotoAlbum.Data;
 using PhotoAlbum.Models;
 using PhotoAlbum.Services;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 using System.Text;
 
 namespace PhotoAlbum.Tests.Unit.Services;
@@ -54,7 +56,7 @@ public class PhotoServiceTests : IDisposable
     public async Task UploadPhotoAsync_WithValidImage_ReturnsSuccess()
     {
         // Arrange
-        var file = CreateMockFormFile("test.jpg", "image/jpeg", 1024);
+        var file = CreateImageFormFile("test.jpg", "image/jpeg");
 
         // Act
         var result = await _photoService.UploadPhotoAsync(file);
@@ -70,7 +72,7 @@ public class PhotoServiceTests : IDisposable
         Assert.NotNull(photo);
         Assert.Equal("test.jpg", photo.OriginalFileName);
         Assert.Equal("image/jpeg", photo.MimeType);
-        Assert.Equal(1024, photo.FileSize);
+        Assert.True(photo.FileSize > 0);
     }
 
     [Fact]
@@ -107,7 +109,7 @@ public class PhotoServiceTests : IDisposable
     public async Task UploadPhotoAsync_CreatesFileInUploadsDirectory()
     {
         // Arrange
-        var file = CreateMockFormFile("test.png", "image/png", 2048);
+        var file = CreateImageFormFile("test.png", "image/png");
 
         // Act
         var result = await _photoService.UploadPhotoAsync(file);
@@ -126,7 +128,7 @@ public class PhotoServiceTests : IDisposable
     public async Task UploadPhotoAsync_SavesMetadataToDatabase()
     {
         // Arrange
-        var file = CreateMockFormFile("photo.jpg", "image/jpeg", 3072);
+        var file = CreateImageFormFile("photo.jpg", "image/jpeg");
 
         // Act
         var result = await _photoService.UploadPhotoAsync(file);
@@ -192,7 +194,7 @@ public class PhotoServiceTests : IDisposable
     public async Task DeletePhotoAsync_RemovesFileAndDatabaseRecord()
     {
         // Arrange
-        var file = CreateMockFormFile("todelete.jpg", "image/jpeg", 1024);
+        var file = CreateImageFormFile("todelete.jpg", "image/jpeg");
         var uploadResult = await _photoService.UploadPhotoAsync(file);
         var photoId = uploadResult.PhotoId!.Value;
 
@@ -213,6 +215,26 @@ public class PhotoServiceTests : IDisposable
         var content = new byte[size];
         var stream = new MemoryStream(content);
         return new FormFile(stream, 0, size, "file", fileName)
+        {
+            Headers = new HeaderDictionary(),
+            ContentType = contentType
+        };
+    }
+
+    // Produces a real (decodable) image so hardened upload validation accepts it.
+    private static IFormFile CreateImageFormFile(string fileName, string contentType)
+    {
+        using var image = new Image<Rgba32>(16, 16);
+        var stream = new MemoryStream();
+        switch (Path.GetExtension(fileName).ToLowerInvariant())
+        {
+            case ".png": image.SaveAsPng(stream); break;
+            case ".gif": image.SaveAsGif(stream); break;
+            case ".webp": image.SaveAsWebp(stream); break;
+            default: image.SaveAsJpeg(stream); break;
+        }
+        stream.Position = 0;
+        return new FormFile(stream, 0, stream.Length, "file", fileName)
         {
             Headers = new HeaderDictionary(),
             ContentType = contentType

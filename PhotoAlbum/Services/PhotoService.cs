@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using PhotoAlbum.Data;
 using PhotoAlbum.Models;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats;
 
 namespace PhotoAlbum.Services;
 
@@ -16,6 +17,10 @@ public class PhotoService : IPhotoService
     private readonly string _uploadPath;
     private readonly long _maxFileSizeBytes;
     private readonly string[] _allowedMimeTypes;
+
+    // Only these real (content-detected) raster image formats may be stored.
+    private static readonly HashSet<string> _allowedImageExtensions =
+        new(StringComparer.OrdinalIgnoreCase) { "jpg", "jpeg", "png", "gif", "webp" };
 
     public PhotoService(
         PhotoAlbumContext context,
@@ -78,15 +83,8 @@ public class PhotoService : IPhotoService
 
         try
         {
-            // Validate file type
-            if (!_allowedMimeTypes.Contains(file.ContentType.ToLowerInvariant()))
-            {
-                result.Success = false;
-                result.ErrorMessage = $"File type not supported. Please upload JPEG, PNG, GIF, or WebP images.";
-                _logger.LogWarning("Upload rejected: Invalid file type {ContentType} for {FileName}",
-                    file.ContentType, file.FileName);
-                return result;
-            }
+            // NOTE: the client-supplied Content-Type is NOT trusted for validation.
+            // The real image format is detected from the file content below (CWE-434).
 
             // Validate file size
             if (file.Length > _maxFileSizeBytes)
@@ -106,9 +104,44 @@ public class PhotoService : IPhotoService
                 return result;
             }
 
-            // Generate unique filename
-            var extension = Path.GetExtension(file.FileName);
-            var storedFileName = $"{Guid.NewGuid()}{extension}";
+            // Verify the upload is a real raster image and determine its true
+            // format from the content (never from the client Content-Type or the
+            // user-supplied file name). Fail closed if it cannot be decoded
+            // (CWE-434 unrestricted upload / CWE-79 stored XSS via .html/.svg).
+            int? width = null;
+            int? height = null;
+            IImageFormat imageFormat;
+            try
+            {
+                await using var probeStream = file.OpenReadStream();
+                var imageInfo = await Image.IdentifyAsync(probeStream);
+                imageFormat = imageInfo.Metadata.DecodedImageFormat
+                    ?? throw new InvalidOperationException("Unknown image format.");
+                width = imageInfo.Width;
+                height = imageInfo.Height;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Upload rejected: not a valid image {FileName}", file.FileName);
+                result.Success = false;
+                result.ErrorMessage = "File type not supported. Please upload JPEG, PNG, GIF, or WebP images.";
+                return result;
+            }
+
+            // Allow only known-safe raster formats, keyed off the detected format's
+            // canonical extension (not the attacker-controlled file name).
+            var safeExtension = imageFormat.FileExtensions.FirstOrDefault();
+            if (safeExtension == null || !_allowedImageExtensions.Contains(safeExtension))
+            {
+                result.Success = false;
+                result.ErrorMessage = "File type not supported. Please upload JPEG, PNG, GIF, or WebP images.";
+                _logger.LogWarning("Upload rejected: unsupported image format {Format} for {FileName}",
+                    imageFormat.Name, file.FileName);
+                return result;
+            }
+
+            // Build a safe stored file name using the detected format's extension.
+            var storedFileName = $"{Guid.NewGuid()}.{safeExtension}";
             var relativePath = $"/uploads/{storedFileName}";
 
             // Ensure upload directory exists
@@ -118,24 +151,6 @@ public class PhotoService : IPhotoService
             }
 
             var fullPath = Path.Combine(_uploadPath, storedFileName);
-
-            // Extract image dimensions using ImageSharp
-            int? width = null;
-            int? height = null;
-            try
-            {
-                using var image = await Image.LoadAsync(file.OpenReadStream());
-                width = image.Width;
-                height = image.Height;
-
-                // Reset stream position for file saving
-                file.OpenReadStream().Position = 0;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Could not extract image dimensions for {FileName}", file.FileName);
-                // Continue without dimensions - not critical
-            }
 
             // Save file to disk
             try
@@ -154,11 +169,11 @@ public class PhotoService : IPhotoService
             // Create photo entity
             var photo = new Photo
             {
-                OriginalFileName = file.FileName,
+                OriginalFileName = Path.GetFileName(file.FileName),
                 StoredFileName = storedFileName,
                 FilePath = relativePath,
                 FileSize = file.Length,
-                MimeType = file.ContentType,
+                MimeType = imageFormat.DefaultMimeType,
                 UploadedAt = DateTime.UtcNow,
                 Width = width,
                 Height = height

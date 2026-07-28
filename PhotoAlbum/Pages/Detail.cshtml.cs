@@ -91,6 +91,13 @@ public class DetailModel : PageModel
     /// <returns>Redirect to index page</returns>
     public async Task<IActionResult> OnPostDeleteAsync(int id)
     {
+        // Deleting a photo is a destructive operation and requires authentication
+        // (CWE-306). Anonymous callers are redirected to the login page.
+        if (User.Identity is null || !User.Identity.IsAuthenticated)
+        {
+            return Challenge();
+        }
+
         try
         {
             await _photoService.DeletePhotoAsync(id);

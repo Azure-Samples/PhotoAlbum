@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using PhotoAlbum.Data;
 using PhotoAlbum.Services;
@@ -6,6 +7,16 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
+
+// Authentication/authorization: the gallery is public, but state-changing
+// operations (photo delete) require an authenticated admin (CWE-306).
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Login";
+        options.AccessDeniedPath = "/Login";
+    });
+builder.Services.AddAuthorization();
 
 // Add DbContext
 builder.Services.AddDbContext<PhotoAlbumContext>(options =>
@@ -71,6 +82,7 @@ app.UseStaticFiles(new Microsoft.AspNetCore.Builder.StaticFileOptions
 
 app.UseRouting();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapStaticAssets();
