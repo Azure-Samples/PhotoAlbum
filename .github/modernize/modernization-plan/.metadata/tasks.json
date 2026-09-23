@@ -131,8 +131,8 @@
         "passBuild": "true",
         "passUnitTests": "true"
       },
-      "cveReport": "006-security-cve-remediation/final-cve-report.json",
-      "taskSummary": "NuGet dependency audit found no known vulnerabilities across 12 top-level packages, so no dependency changes were required. Recorded initial and final scan reports under 006-security-cve-remediation/, and verified the solution still builds and tests pass (49/49)."
+      "cveReport": ".github/modernize/modernization-plan/006-security-cve-remediation/final-cve-report.json",
+      "taskSummary": "Scanned 12 top-level NuGet packages via dotnet nuget audit; 0 known vulnerabilities found. No dependency changes required. Build and tests (49/49) pass. Reports saved under 006-security-cve-remediation/."
     },
     {
       "type": "deployment",
@@ -152,7 +152,8 @@
       ],
       "targetAzureService": "azurecontainerapp",
       "resourceStatus": "Existing infrastructure already defined in repository (infra/main.bicep, azure.yaml, Dockerfile)",
-      "deploymentTool": "bicep"
+      "deploymentTool": "bicep",
+      "status": "started"
     }
   ],
   "metadata": {
