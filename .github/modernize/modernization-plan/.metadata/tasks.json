@@ -103,7 +103,8 @@
         "002-transform-complete-blob-storage-migration",
         "003-transform-externalize-local-configuration",
         "004-transform-review-static-content-hosting"
-      ]
+      ],
+      "status": "started"
     },
     {
       "type": "security",
