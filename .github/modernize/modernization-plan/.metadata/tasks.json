@@ -126,7 +126,13 @@
         "passBuild": "true",
         "passUnitTests": "true"
       },
-      "status": "started"
+      "status": "success",
+      "successCriteriaStatus": {
+        "passBuild": "true",
+        "passUnitTests": "true"
+      },
+      "cveReport": "006-security-cve-remediation/final-cve-report.json",
+      "taskSummary": "NuGet dependency audit found no known vulnerabilities across 12 top-level packages, so no dependency changes were required. Recorded initial and final scan reports under 006-security-cve-remediation/, and verified the solution still builds and tests pass (49/49)."
     },
     {
       "type": "deployment",
