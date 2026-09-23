@@ -84,7 +84,8 @@
       "successCriteria": {
         "passBuild": "true",
         "passUnitTests": "true"
-      }
+      },
+      "status": "started"
     },
     {
       "type": "integrationTest",
