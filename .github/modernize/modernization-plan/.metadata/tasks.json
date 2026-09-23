@@ -85,7 +85,12 @@
         "passBuild": "true",
         "passUnitTests": "true"
       },
-      "status": "started"
+      "status": "success",
+      "successCriteriaStatus": {
+        "passBuild": "true",
+        "passUnitTests": "true"
+      },
+      "taskSummary": "Reviewed wwwroot static asset hosting strategy for Azure Container Apps. Active payload (css/site.css, js/site.js, js/upload.js, favicon.ico, <20KB) is kept in-container, served via existing MapStaticAssets/UseStaticFiles pipeline with cache-busting (asp-append-version) and Cache-Control headers - documented rationale in modernization-summary.md. Removed ~9.5MB of unreferenced vendor libraries (wwwroot/lib: Bootstrap/jQuery/jQuery Validation, Bootstrap is loaded from CDN in _Layout.cshtml and jQuery/validation partial was never rendered), the dead _ValidationScriptsPartial.cshtml, and the stale wwwroot/uploads placeholder left over from the blob storage migration. No page URLs/markup changed. Added 4 new regression tests (StaticContentHostingTests). Build succeeded, 16/16 tests passed. Consistency check: 0 issues."
     },
     {
       "type": "integrationTest",
