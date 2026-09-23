@@ -5,7 +5,7 @@ using PhotoAlbum.Services;
 namespace PhotoAlbum.Pages;
 
 /// <summary>
-/// Page model for serving photo files from Azure Blob Storage or the local fallback.
+/// Page model for serving photo files from Azure Blob Storage.
 /// </summary>
 public class PhotoFileModel : PageModel
 {

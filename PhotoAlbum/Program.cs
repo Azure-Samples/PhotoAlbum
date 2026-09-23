@@ -43,7 +43,13 @@ else if (!string.IsNullOrWhiteSpace(configuredAccountName) && !configuredAccount
 }
 else
 {
-    builder.Services.AddSingleton<IPhotoBlobStorage, LocalPhotoBlobStorage>();
+    // Photo storage is exclusively Azure Blob Storage (with Managed Identity) — there is
+    // no local-disk fallback. Fail fast at startup if neither Storage:ServiceUri nor
+    // Storage:AccountName/StorageAccountName is configured, so misconfiguration surfaces
+    // immediately rather than silently writing photos to ephemeral container disk.
+    throw new InvalidOperationException(
+        "Azure Blob Storage is not configured. Set 'Storage:ServiceUri' or 'Storage:AccountName' " +
+        "(and 'Storage:ContainerName') so photo storage can use Azure Blob Storage with Managed Identity.");
 }
 
 // Add services to the container.

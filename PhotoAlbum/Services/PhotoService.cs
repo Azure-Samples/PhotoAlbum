@@ -8,8 +8,9 @@ namespace PhotoAlbum.Services;
 
 /// <summary>
 /// Service for photo operations including upload, retrieval, and deletion.
-/// The storage backend is configuration-driven and defaults to a local fallback
-/// when Azure Blob Storage is not yet configured.
+/// All photo storage operations go exclusively through Azure Blob Storage,
+/// authenticated via Managed Identity (DefaultAzureCredential). There is no
+/// local-disk fallback.
 /// </summary>
 public class PhotoService : IPhotoService
 {
@@ -68,8 +69,14 @@ public class PhotoService : IPhotoService
             return new AzurePhotoBlobStorage(blobServiceClient, configuration, loggerFactory.CreateLogger<AzurePhotoBlobStorage>());
         }
 
-        logger.LogInformation("Azure Blob Storage configuration not detected; using local fallback storage for this environment.");
-        return new LocalPhotoBlobStorage(configuration);
+        // Photo storage is exclusively Azure Blob Storage (with Managed Identity) — there is
+        // no local-disk fallback. Callers (e.g. DI in Program.cs, or tests) must either supply
+        // a configured Storage:ServiceUri/Storage:AccountName + Storage:ContainerName, or inject
+        // an IPhotoBlobStorage implementation explicitly via the constructor parameter.
+        logger.LogError("Azure Blob Storage configuration not detected; photo storage cannot be initialized.");
+        throw new InvalidOperationException(
+            "Azure Blob Storage is not configured. Set 'Storage:ServiceUri' or 'Storage:AccountName' " +
+            "(and 'Storage:ContainerName'), or supply an IPhotoBlobStorage instance explicitly.");
     }
 
     /// <summary>

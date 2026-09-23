@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using PhotoAlbum.Data;
 using PhotoAlbum.Models;
 using PhotoAlbum.Services;
+using PhotoAlbum.Tests.TestDoubles;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using System.Text;
@@ -15,7 +16,7 @@ public class PhotoServiceTests : IDisposable
 {
     private readonly PhotoAlbumContext _context;
     private readonly IPhotoService _photoService;
-    private readonly string _tempUploadPath;
+    private readonly InMemoryPhotoBlobStorage _photoBlobStorage;
     private readonly IConfiguration _configuration;
     private readonly ILogger<PhotoService> _logger;
 
@@ -27,10 +28,6 @@ public class PhotoServiceTests : IDisposable
             .Options;
         _context = new PhotoAlbumContext(options);
 
-        // Setup temp upload directory
-        _tempUploadPath = Path.Combine(Path.GetTempPath(), "PhotoAlbumTests", Guid.NewGuid().ToString());
-        Directory.CreateDirectory(_tempUploadPath);
-
         // Setup configuration
         var inMemorySettings = new Dictionary<string, string>
         {
@@ -38,8 +35,7 @@ public class PhotoServiceTests : IDisposable
             {"FileUpload:AllowedMimeTypes:0", "image/jpeg"},
             {"FileUpload:AllowedMimeTypes:1", "image/png"},
             {"FileUpload:AllowedMimeTypes:2", "image/gif"},
-            {"FileUpload:AllowedMimeTypes:3", "image/webp"},
-            {"Storage:FallbackRootPath", _tempUploadPath}
+            {"FileUpload:AllowedMimeTypes:3", "image/webp"}
         };
         _configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(inMemorySettings!)
@@ -48,8 +44,14 @@ public class PhotoServiceTests : IDisposable
         // Setup logger
         _logger = new LoggerFactory().CreateLogger<PhotoService>();
 
+        // Photo storage is exclusively Azure Blob Storage in production
+        // (AzurePhotoBlobStorage); there is no local-disk fallback anymore.
+        // Unit tests inject an in-memory, managed test double explicitly so
+        // they don't require a real Azure Storage account.
+        _photoBlobStorage = new InMemoryPhotoBlobStorage();
+
         // Create PhotoService instance
-        _photoService = new PhotoService(_context, _configuration, _logger);
+        _photoService = new PhotoService(_context, _configuration, _logger, _photoBlobStorage);
     }
 
     [Fact]
@@ -117,11 +119,52 @@ public class PhotoServiceTests : IDisposable
         // Assert
         Assert.True(result.Success);
 
-        // Verify file exists
+        // Verify blob exists in Azure Blob Storage (in-memory test double)
         var photo = await _context.Photos.FindAsync(result.PhotoId);
         Assert.NotNull(photo);
-        var fullPath = Path.Combine(_tempUploadPath, "photos", photo.StoredFileName);
-        Assert.True(File.Exists(fullPath));
+        var blobName = $"photos/{photo.StoredFileName}";
+        Assert.True(_photoBlobStorage.Blobs.ContainsKey(blobName));
+    }
+
+    [Fact]
+    public async Task UploadPhotoAsync_ThenDownloadAsync_RoundTripsBytesThroughBlobStorage()
+    {
+        // Arrange
+        var file = CreateImageFormFile("roundtrip.png", "image/png");
+
+        // Act
+        var uploadResult = await _photoService.UploadPhotoAsync(file);
+        Assert.True(uploadResult.Success);
+
+        var photo = await _context.Photos.FindAsync(uploadResult.PhotoId);
+        Assert.NotNull(photo);
+        var blobName = $"photos/{photo.StoredFileName}";
+
+        var downloaded = await _photoBlobStorage.DownloadAsync(blobName);
+
+        // Assert: photo storage exclusively goes through IPhotoBlobStorage
+        // (Azure Blob Storage in production) — no local disk is involved,
+        // and the uploaded bytes are retrievable through the same interface.
+        Assert.True(downloaded.Length > 0);
+        Assert.Equal(photo.FileSize, downloaded.Length);
+    }
+
+    [Fact]
+    public void Constructor_WithNoInjectedStorageAndNoAzureConfiguration_ThrowsInvalidOperationException()
+    {
+        // Arrange: no IPhotoBlobStorage supplied, and no Storage:ServiceUri /
+        // Storage:AccountName configured — there is no local-disk fallback
+        // to fall back to anymore, so construction must fail fast.
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                {"FileUpload:MaxFileSizeBytes", "10485760"}
+            })
+            .Build();
+
+        // Act & Assert
+        Assert.Throws<InvalidOperationException>(() =>
+            new PhotoService(_context, configuration, _logger));
     }
 
     [Fact]
@@ -199,7 +242,7 @@ public class PhotoServiceTests : IDisposable
         var photoId = uploadResult.PhotoId!.Value;
 
         var photo = await _context.Photos.FindAsync(photoId);
-        var fullPath = Path.Combine(_tempUploadPath, "photos", photo!.StoredFileName);
+        var blobName = $"photos/{photo!.StoredFileName}";
 
         // Act
         var result = await _photoService.DeletePhotoAsync(photoId);
@@ -207,7 +250,7 @@ public class PhotoServiceTests : IDisposable
         // Assert
         Assert.True(result);
         Assert.Null(await _context.Photos.FindAsync(photoId));
-        Assert.False(File.Exists(fullPath));
+        Assert.False(_photoBlobStorage.Blobs.ContainsKey(blobName));
     }
 
     private IFormFile CreateMockFormFile(string fileName, string contentType, long size)
@@ -244,9 +287,5 @@ public class PhotoServiceTests : IDisposable
     public void Dispose()
     {
         _context.Dispose();
-        if (Directory.Exists(_tempUploadPath))
-        {
-            Directory.Delete(_tempUploadPath, true);
-        }
     }
 }
