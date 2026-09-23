@@ -1,0 +1,35 @@
+{
+  "description": "Representative 3-row Photos seed set used by gallery/detail test cases (TC-WEB-001, TC-WEB-014..016). Rows are listed oldest to newest; UploadedAt offsets are relative to the moment the seed is applied (T0).",
+  "photos": [
+    {
+      "originalFileName": "first.jpg",
+      "storedFileName": "seed-guid-1.jpg",
+      "filePath": "/photos/seed-guid-1.jpg",
+      "fileSize": 645,
+      "mimeType": "image/jpeg",
+      "uploadedAtOffset": "-PT2H",
+      "width": 32,
+      "height": 24
+    },
+    {
+      "originalFileName": "second.jpg",
+      "storedFileName": "seed-guid-2.jpg",
+      "filePath": "/photos/seed-guid-2.jpg",
+      "fileSize": 645,
+      "mimeType": "image/jpeg",
+      "uploadedAtOffset": "-PT1H",
+      "width": 32,
+      "height": 24
+    },
+    {
+      "originalFileName": "third.jpg",
+      "storedFileName": "seed-guid-3.jpg",
+      "filePath": "/photos/seed-guid-3.jpg",
+      "fileSize": 645,
+      "mimeType": "image/jpeg",
+      "uploadedAtOffset": "PT0S",
+      "width": 32,
+      "height": 24
+    }
+  ]
+}
