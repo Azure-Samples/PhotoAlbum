@@ -104,7 +104,8 @@
         "003-transform-externalize-local-configuration",
         "004-transform-review-static-content-hosting"
       ],
-      "status": "started"
+      "status": "success",
+      "taskSummary": "Ran post-migration integration tests in mock mode (Blob Storage, SQL Database, App Configuration all mocked). Generated 6 *PostMigrationIT test files with 33 tests mapping 1:1 to frozen TC-WEB-* baseline spec. 33/33 passed (49/49 including unit tests). Corrected 3 pre-existing (non-regression) spec discrepancies and re-froze baseline at 1f803bc."
     },
     {
       "type": "security",
@@ -124,7 +125,8 @@
       "successCriteria": {
         "passBuild": "true",
         "passUnitTests": "true"
-      }
+      },
+      "status": "started"
     },
     {
       "type": "deployment",
