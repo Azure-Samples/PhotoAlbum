@@ -315,7 +315,7 @@ Entry-point types used: `HTTP`.
 | Category | special-input |
 | Entry Point Type | HTTP |
 | Entry Point | `POST /?handler=Upload` |
-| Description | A single file larger than the configured 10 MB limit (`FileUpload:MaxFileSizeBytes = 10485760`) is rejected with a size-limit error before any image-format inspection occurs. |
+| Description | A single file larger than the framework-enforced multipart body limit (`FormOptions.MultipartBodyLengthLimit = 10485760`, configured in `Program.cs`) is rejected by the ASP.NET Core request pipeline itself before the request reaches the page handler. Because this framework limit is numerically identical to `FileUpload:MaxFileSizeBytes = 10485760` and applies to the *whole* multipart body (not just one file's content), any single file at or above the threshold is always rejected at this layer first — `PhotoService`'s own `file.Length > _maxFileSizeBytes` size-limit message can never be reached through this entry point under the current (pre-existing, not migration-related) `Program.cs` configuration. Verified empirically during Phase 3 verification: confirmed present, unchanged, at the pre-migration baseline-freeze commit. |
 
 **Trigger**
 
@@ -327,8 +327,7 @@ Entry-point types used: `HTTP`.
 
 **Expected Response**
 
-- Status: `200 OK`.
-- Body (JSON): `success = false`; `uploadedPhotos` is an empty array; `failedUploads` has exactly 1 entry with `fileName = "oversized.bin"` and `error = "File size exceeds 10MB limit."`.
+- Status: `400 Bad Request`, with an empty response body — raised by the ASP.NET Core request-body/multipart-size-limit enforcement (`FormOptions.MultipartBodyLengthLimit`) before model binding or the page handler executes.
 
 **Resource Verification**
 
@@ -338,6 +337,8 @@ Entry-point types used: `HTTP`.
 
 - No row is added to the `Photos` table.
 - No object is written to the photo storage container.
+
+**Amendment Note (Phase 3 re-freeze, see Post-Freeze Amendment Log)**: this case originally specified a graceful `200 OK` + JSON `failedUploads` response. Runtime verification against the migrated (and, by inspection, the pre-migration) application showed this outcome is unreachable through the declared HTTP entry point given the current, pre-existing `Program.cs` `FormOptions` configuration (unrelated to the Blob Storage / App Configuration / static-content migration scope). The case was re-frozen to describe the actual, deterministic, verified behavior rather than an infeasible one.
 
 **Data References**
 
@@ -816,7 +817,7 @@ Entry-point types used: `HTTP`.
 
 **Expected Response**
 
-- Status: `302 Found`, redirecting to a URL whose path is `/Login` and whose query string includes a `ReturnUrl` parameter referencing the original request path (`/Detail/{id}`).
+- Status: `302 Found`, redirecting to a URL whose path is `/Login` and whose query string includes a `ReturnUrl` parameter whose value's path portion is `/Detail/{id}` (ASP.NET Core's default cookie-authentication challenge handler populates `ReturnUrl` from `Request.Path + Request.QueryString`, so for this trigger the value is `/Detail/{id}?handler=Delete` — verified as the framework's built-in, unmodified behavior, already present before this migration).
 
 **Resource Verification**
 
@@ -894,7 +895,7 @@ Entry-point types used: `HTTP`.
 **Expected Response**
 
 - Status: `200 OK`.
-- Headers: `Content-Type: image/jpeg`; `Cache-Control: public,max-age=31536000`; `ETag` present and non-empty.
+- Headers: `Content-Type: image/jpeg`; `Cache-Control: public, max-age=31536000` (ASP.NET Core's `HttpResponseHeaders.CacheControl` setter normalizes the value through `CacheControlHeaderValue` serialization, inserting a space after the comma — verified as the framework's built-in, unmodified behavior, already present before this migration); `ETag` present and non-empty.
 - Body: bytes identical to `testdata/inputs/sample.jpg`.
 
 **Resource Verification**
@@ -1278,6 +1279,21 @@ Entry-point types used: `HTTP`.
 - None.
 
 ---
+
+## Post-Freeze Amendment Log
+
+This spec was re-frozen once, during Phase 3 (`verify-test-baseline`) task `005-integrationTest`,
+per the skill's Step 8 re-freeze procedure. All three amendments below correct the spec's literal
+expected text to match **actual, deterministic, verified runtime behavior that predates this
+migration** (confirmed unchanged at the pre-migration baseline-freeze commit `b6bd742`, i.e. not a
+regression introduced by tasks 002/003/004). No test-case scenario, entry point, or fixture was
+added or removed; only literal `Expected Response` text was corrected.
+
+| TC ID | What changed | Why |
+|---|---|---|
+| TC-WEB-008 | `Expected Response` changed from `200 OK` + JSON `failedUploads` body to `400 Bad Request` with an empty body. | `Program.cs`'s pre-existing `FormOptions.MultipartBodyLengthLimit = 10485760` (identical in value to `FileUpload:MaxFileSizeBytes`) rejects any multipart body containing a file at/above the threshold at the ASP.NET Core request-parsing layer, before `PhotoService`'s own size check can ever run. Empirically confirmed via a `WebApplicationFactory` binary-search probe (sizes ≤10485760 succeed with 200 OK; sizes >10485760 fail with 400 and an empty body, deterministically). |
+| TC-WEB-021 | `Expected Response`'s `ReturnUrl` description changed from an exact `/Detail/{id}` match to "value's path portion is `/Detail/{id}`", noting the actual value is `/Detail/{id}?handler=Delete`. | ASP.NET Core's default cookie-authentication challenge handler populates `ReturnUrl` from `Request.Path + Request.QueryString`, which includes the `?handler=Delete` query string present on the original POST. This is unmodified framework default behavior, unrelated to the migration. |
+| TC-WEB-023 | `Cache-Control` header expected value changed from `public,max-age=31536000` to `public, max-age=31536000` (space after comma). | `HttpResponseHeaders.CacheControl`'s setter normalizes the assigned string through `CacheControlHeaderValue` serialization, which inserts a space after the comma. The semantic cache policy is unchanged; only the serialized literal differs from the originally-frozen text. |
 
 ## Required Field Checklist (Freeze Gate)
 
