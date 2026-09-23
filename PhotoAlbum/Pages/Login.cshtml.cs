@@ -39,11 +39,11 @@ public class LoginModel : PageModel
 
     public async Task<IActionResult> OnPostAsync()
     {
-        var adminUser = _configuration["Admin:Username"] ?? "admin";
+        var adminUser = _configuration["Admin:Username"];
         var adminPassword = _configuration["Admin:Password"];
 
-        // Fail closed if no admin password has been configured.
-        if (string.IsNullOrEmpty(adminPassword))
+        // Fail closed if the managed configuration does not contain admin credentials.
+        if (string.IsNullOrEmpty(adminUser) || string.IsNullOrEmpty(adminPassword))
         {
             ErrorMessage = "Admin account is not configured.";
             return Page();

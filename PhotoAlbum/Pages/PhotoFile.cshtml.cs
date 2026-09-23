@@ -26,7 +26,8 @@ public class PhotoFileModel : PageModel
         _configuration = configuration;
         _logger = logger;
 
-        _uploadPath = _configuration["FileUpload:UploadPath"] ?? "wwwroot/uploads";
+        _uploadPath = _configuration["FileUpload:UploadPath"]
+            ?? throw new InvalidOperationException("FileUpload:UploadPath is not configured.");
     }
 
     /// <summary>

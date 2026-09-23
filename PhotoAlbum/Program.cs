@@ -1,9 +1,30 @@
+using Azure.Identity;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.Extensions.Configuration.AzureAppConfiguration;
 using Microsoft.EntityFrameworkCore;
 using PhotoAlbum.Data;
 using PhotoAlbum.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+var appConfigurationEndpoint = Environment.GetEnvironmentVariable("AZURE_APP_CONFIGURATION_ENDPOINT");
+var credential = new DefaultAzureCredential();
+
+if (!string.IsNullOrWhiteSpace(appConfigurationEndpoint))
+{
+    builder.Configuration.AddAzureAppConfiguration(options =>
+    {
+        options.Connect(new Uri(appConfigurationEndpoint), credential);
+    });
+}
+
+var keyVaultUri = Environment.GetEnvironmentVariable("AZURE_KEY_VAULT_URI");
+if (!string.IsNullOrWhiteSpace(keyVaultUri))
+{
+    builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUri), credential);
+}
+
+builder.Services.AddAzureAppConfiguration();
 
 // Add services to the container.
 builder.Services.AddRazorPages();
@@ -20,7 +41,11 @@ builder.Services.AddAuthorization();
 
 // Add DbContext
 builder.Services.AddDbContext<PhotoAlbumContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+        ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection is not configured.");
+    options.UseSqlServer(connectionString);
+});
 
 // Register PhotoService
 builder.Services.AddScoped<IPhotoService, PhotoService>();

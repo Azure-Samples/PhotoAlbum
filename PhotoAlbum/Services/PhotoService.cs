@@ -31,7 +31,8 @@ public class PhotoService : IPhotoService
         _configuration = configuration;
         _logger = logger;
 
-        _uploadPath = _configuration["FileUpload:UploadPath"] ?? "wwwroot/uploads";
+        _uploadPath = _configuration["FileUpload:UploadPath"]
+            ?? throw new InvalidOperationException("FileUpload:UploadPath is not configured.");
         _maxFileSizeBytes = _configuration.GetValue<long>("FileUpload:MaxFileSizeBytes", 10485760);
         _allowedMimeTypes = _configuration.GetSection("FileUpload:AllowedMimeTypes").Get<string[]>()
             ?? new[] { "image/jpeg", "image/png", "image/gif", "image/webp" };

@@ -23,6 +23,7 @@
     {
       "type": "transform",
       "id": "002-transform-config-and-secrets",
+      "status": "started",
       "description": "Externalize app configuration and sensitive settings from local files into Azure-managed configuration. Addresses issues: Local application configuration detected; Connection string is detected; Connection strings without configuration builders detected; Hardcoded sensitive data detected.",
       "requirements": "Move non-secret and secret settings out of appsettings.json, Web.config, and environment-local configuration so the application reads values from Azure-managed configuration sources instead of source-controlled files. Use Azure App Configuration or environment variables for non-secret settings and Key Vault or equivalent managed secret storage for credentials and database connection values. Preserve the existing Razor Pages and EF Core behaviors while removing direct local configuration dependencies.",
       "reason": "The current app stores connection strings and settings locally, which is incompatible with secure cloud deployment.",
