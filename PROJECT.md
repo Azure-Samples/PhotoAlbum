@@ -10,14 +10,14 @@ A simple photo storage and gallery application built with ASP.NET Core Razor Pag
 - �📊 **Metadata Display**: View file size, dimensions, aspect ratio, and upload timestamp
 - ⬅️➡️ **Photo Navigation**: Previous/Next buttons to browse through photos
 - ✅ **Validation**: File type and size validation (JPEG, PNG, GIF, WebP; max 10MB)
-- 🗄️ **Database Storage**: Photo metadata stored in SQL Server LocalDB
+- 🗄️ **Database Storage**: Photo metadata stored in Azure SQL Database
 - 🗑️ **Delete Photos**: Remove photos from both gallery and detail views
 - 🎨 **Modern UI**: Clean, responsive design with Bootstrap 5
 
 ## Prerequisites
 
 - [.NET 9.0 SDK](https://dotnet.microsoft.com/download/dotnet/9.0) or later
-- SQL Server LocalDB (installed with Visual Studio or SQL Server Express)
+- Azure SQL Database access with managed identity configuration
 - A modern web browser
 
 ## Getting Started
@@ -37,7 +37,7 @@ dotnet restore
 
 ### 3. Apply Database Migrations
 
-The application uses Entity Framework Core with SQL Server LocalDB. Migrations are applied automatically on first run, or you can apply them manually:
+The application uses Entity Framework Core with Azure SQL Database. Migrations are applied automatically on first run, or you can apply them manually:
 
 ```bash
 dotnet ef database update --project PhotoAlbum
@@ -76,7 +76,7 @@ Configuration is stored in `appsettings.json`:
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=PhotoAlbumDb;..."
+    "DefaultConnection": "Server=tcp:<sql-server-name>.database.windows.net,1433;Initial Catalog=<database-name>;Authentication=Active Directory Default;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
   },
   "Storage": {
     "AccountName": "your-storage-account-name",
@@ -124,7 +124,7 @@ dotnet test --filter Category=Integration
 ### Technology Stack
 
 - **Framework**: ASP.NET Core 9.0 (Razor Pages)
-- **Database**: SQL Server LocalDB with Entity Framework Core 9.0
+- **Database**: Azure SQL Database with Entity Framework Core 9.0 using managed identity
 - **Testing**: xUnit with WebApplicationFactory
 - **Image Processing**: SixLabors.ImageSharp 3.1.11
 - **Frontend**: Bootstrap 5.3.0, Vanilla JavaScript
@@ -191,18 +191,9 @@ dotnet publish --configuration Release --output ./publish
 
 If you encounter database connection errors:
 
-1. Verify SQL Server LocalDB is installed:
-   ```bash
-   sqllocaldb info
-   ```
-
-2. Create a new LocalDB instance if needed:
-   ```bash
-   sqllocaldb create MSSQLLocalDB
-   sqllocaldb start MSSQLLocalDB
-   ```
-
-3. Update the connection string in `appsettings.json` if using a different instance.
+1. Verify the Azure SQL server and database are reachable from the app environment.
+2. Ensure the application managed identity has access to the database.
+3. Update the `DefaultConnection` connection string or environment variables to the correct Azure SQL endpoint.
 
 ### Storage Access
 

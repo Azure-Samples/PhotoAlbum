@@ -13,7 +13,7 @@ PhotoAlbum provides a simple photo management system, allowing users to:
 - View full-size photos with detailed metadata (dimensions, file size, aspect ratio)
 - Navigate between photos using Previous/Next controls
 - Delete photos from the gallery
-- Store photo metadata in SQL Server LocalDB
+- Store photo metadata in Azure SQL Database using managed identity
 
 ## 📋 Prerequisites
 

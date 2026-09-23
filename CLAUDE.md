@@ -8,7 +8,7 @@ PhotoAlbum is an ASP.NET Core 9.0 Razor Pages application for photo gallery mana
 
 **Tech Stack:**
 - ASP.NET Core 9.0 (Razor Pages)
-- Entity Framework Core 9.0 with SQL Server LocalDB
+- Entity Framework Core 9.0 with Azure SQL Database and managed identity
 - SixLabors.ImageSharp for image processing
 - xUnit for testing
 
@@ -69,7 +69,7 @@ dotnet ef database update --project PhotoAlbum/PhotoAlbum.csproj
    - `PhotoFile.cshtml` - File retrieval endpoint
 
 **Configuration (appsettings.json):**
-- `ConnectionStrings:DefaultConnection` - SQL Server LocalDB
+- `ConnectionStrings:DefaultConnection` - Azure SQL Database connection using managed identity
 - `FileUpload:MaxFileSizeBytes` - 10MB limit
 - `FileUpload:AllowedMimeTypes` - JPEG, PNG, GIF, WebP
 - `Storage:ServiceUri` / `Storage:AccountName` - Azure Blob Storage endpoint

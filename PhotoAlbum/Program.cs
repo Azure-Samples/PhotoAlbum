@@ -62,8 +62,43 @@ builder.Services.AddAuthorization();
 // Add DbContext
 builder.Services.AddDbContext<PhotoAlbumContext>(options =>
 {
-    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-        ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection is not configured.");
+    var configuredConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+    if (!string.IsNullOrWhiteSpace(configuredConnectionString) &&
+        (configuredConnectionString.Contains("<", StringComparison.Ordinal) ||
+         configuredConnectionString.Contains(">", StringComparison.Ordinal) ||
+         configuredConnectionString.Contains("(localdb)", StringComparison.OrdinalIgnoreCase)))
+    {
+        configuredConnectionString = null;
+    }
+
+    var connectionString = configuredConnectionString
+        ?? Environment.GetEnvironmentVariable("AZURE_SQL_CONNECTION_STRING")
+        ?? Environment.GetEnvironmentVariable("SQL_CONNECTION_STRING");
+
+    if (string.IsNullOrWhiteSpace(connectionString))
+    {
+        var sqlServer = builder.Configuration["AzureSql:Server"]
+            ?? builder.Configuration["AzureSql__Server"]
+            ?? Environment.GetEnvironmentVariable("AZURE_SQL_SERVER_FQDN")
+            ?? Environment.GetEnvironmentVariable("AZURE_SQL_SERVER_NAME")
+            ?? Environment.GetEnvironmentVariable("SQL_SERVER_NAME");
+
+        var sqlDatabase = builder.Configuration["AzureSql:Database"]
+            ?? builder.Configuration["AzureSql__Database"]
+            ?? Environment.GetEnvironmentVariable("AZURE_SQL_DATABASE_NAME")
+            ?? Environment.GetEnvironmentVariable("SQL_DATABASE_NAME");
+
+        if (!string.IsNullOrWhiteSpace(sqlServer) && !string.IsNullOrWhiteSpace(sqlDatabase))
+        {
+            connectionString = $"Server=tcp:{sqlServer};Initial Catalog={sqlDatabase};Authentication=Active Directory Default;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;";
+        }
+    }
+
+    if (string.IsNullOrWhiteSpace(connectionString))
+    {
+        throw new InvalidOperationException("ConnectionStrings:DefaultConnection is not configured. Set DefaultConnection or AzureSql:Server/AzureSql:Database (or AZURE_SQL_SERVER_FQDN/AZURE_SQL_DATABASE_NAME) to use Azure SQL with managed identity.");
+    }
+
     options.UseSqlServer(connectionString);
 });
 

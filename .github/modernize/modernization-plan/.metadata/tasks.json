@@ -1,186 +1,139 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "description": "Tasks template for modernization plan.",
+  "description": "Tasks template for modernization plan. Generate this file alongside plan.md to track individual migration tasks.",
   "tasks": [
     {
-      "type": "upgrade",
-      "id": "001-upgrade-dotnet-latest-lts",
-      "status": "success",
-      "description": "Upgrade the PhotoAlbum app to the current .NET LTS runtime and refresh the project for Azure-ready compatibility. Addresses issues: Windows authentication detected; SQL database connection detected; Local application configuration detected.",
-      "requirements": "Upgrade the application to the latest supported .NET LTS runtime before replatforming to Azure and ensure the project remains buildable with current ASP.NET Core dependencies. Keep the migration scoped to the app runtime and package compatibility changes only; do not change business functionality beyond necessary compatibility updates.",
-      "reason": "The app needs a modern, supported runtime before Azure migration and dependency hardening.",
+      "type": "setupBaseline",
+      "id": "001-setupBaseline",
+      "description": "Capture a frozen baseline snapshot of the PhotoAlbum application (source, test-cases, testdata, and infra-decision-table) before any modernization changes are made.",
+      "reason": "Provides a stable, unaffected reference point for verifying behavior after the storage, configuration, static content, security, and deployment tasks are executed.",
+      "requirements": "Snapshot the PhotoAlbum project source folder and freeze the test specification (test-cases, testdata) and the real/mock strategy for each external dependency (Azure Blob Storage, Azure SQL Database, Azure App Configuration) used by later mock-mode integration tests.",
+      "dependencies": [],
+      "snapshotFolder": "PhotoAlbum",
       "successCriteria": {
         "passBuild": "true",
         "passUnitTests": "true"
       },
+      "status": "success",
       "successCriteriaStatus": {
         "passBuild": "true",
         "passUnitTests": "true"
       },
-      "taskSummary": "Upgraded the app and test projects to .NET 10 and confirmed the full build/test suite passes with the Azure migration path still intact.",
-      "skills": []
+      "taskSummary": "Captured frozen behavior baseline: 33 test cases in PhotoAlbum.Tests/test-cases/test-cases.md, testdata fixtures, and infra-decision-table (all dependencies mocked). Build and tests pass (7/7). No production code modified. Committed as b6bd742."
     },
     {
       "type": "transform",
-      "id": "002-transform-config-and-secrets",
-      "status": "success",
-      "description": "Externalize app configuration and sensitive settings from local files into Azure-managed configuration. Addresses issues: Local application configuration detected; Connection string is detected; Connection strings without configuration builders detected; Hardcoded sensitive data detected.",
-      "requirements": "Move non-secret and secret settings out of appsettings.json, Web.config, and environment-local configuration so the application reads values from Azure-managed configuration sources instead of source-controlled files. Use Azure App Configuration or environment variables for non-secret settings and Key Vault or equivalent managed secret storage for credentials and database connection values. Preserve the existing Razor Pages and EF Core behaviors while removing direct local configuration dependencies.",
-      "reason": "The current app stores connection strings and settings locally, which is incompatible with secure cloud deployment.",
-      "successCriteria": {
-        "passBuild": "true",
-        "passUnitTests": "true"
-      },
-      "successCriteriaStatus": {
-        "passBuild": "true",
-        "passUnitTests": "true"
-      },
-      "taskSummary": "Configured Azure App Configuration and Key Vault integration, removed the local-only connection string path, and kept the app build/test suite green.",
-      "skills": [
-        {
-          "name": "migration-local-appsettings-azure-app-configuration",
-          "location": "builtin"
-        },
-        {
-          "name": "migration-azure-keyvault-secret",
-          "location": "builtin"
-        }
-      ]
-    },
-    {
-      "type": "transform",
-      "id": "003-transform-photo-storage-to-blob",
-      "status": "started",
-      "description": "Replace local disk-based photo uploads and static asset access with Azure Blob Storage-backed content delivery. Addresses issues: Local or network IO operations detected; Static content detected.",
-      "requirements": "Move photo upload and retrieval flows from the local wwwroot/uploads folder to Azure Blob Storage while preserving upload validation, metadata capture, and photo retrieval behavior. Keep the existing gallery experience stable and ensure the application uses Azure-safe storage patterns without hard-coded local paths.",
-      "reason": "Photo uploads currently write directly to local disk and are not cloud-ready.",
-      "successCriteria": {
-        "passBuild": "true",
-        "passUnitTests": "true"
-      },
+      "id": "002-transform-complete-blob-storage-migration",
+      "description": "Remove the remaining local-disk fallback photo storage path and its synchronous file I/O so all photo storage operations go exclusively through Azure Blob Storage. Addresses issues: Local or network IO operations detected, Synchronous API usage detected.",
+      "reason": "The current `LocalPhotoBlobStorage` fallback in `PhotoAlbum/Services/PhotoBlobStorage.cs` performs local disk reads/writes (Directory.CreateDirectory, File.Create, File.ReadAllBytes, File.Delete) including a synchronous `File.ReadAllBytes` call inside an async method, which prevents the app from being fully stateless/cloud-portable and blocks safe horizontal scaling in Azure Container Apps.",
+      "requirements": "Ensure photo upload, download, and delete operations use only Azure Blob Storage with managed identity, removing local file-system dependencies and synchronous file API calls from the storage code path. Preserve existing upload/download/delete behavior and public API surface (IPhotoBlobStorage) used by PhotoService.",
+      "dependencies": [],
       "skills": [
         {
           "name": "migration-azure-storage-blob",
           "location": "builtin"
         }
-      ]
+      ],
+      "successCriteria": {
+        "passBuild": "true",
+        "passUnitTests": "true"
+      },
+      "status": "started"
     },
     {
       "type": "transform",
-      "id": "004-transform-database-to-azure-sql",
-      "description": "Migrate the application data layer from SQL Server LocalDB to Azure SQL Database and remove local database dependencies. Addresses issues: SQL database connection detected; Connection string is detected; Windows authentication detected.",
-      "requirements": "Move the PhotoAlbum data store to Azure SQL Database using managed identity and environment-based connection settings. Preserve the existing EF Core model, photo metadata structure, and migration flow while replacing the LocalDB connection string and Windows-integrated auth assumptions with Azure-safe configuration.",
-      "reason": "The current database configuration uses local SQL Server and Windows authentication, which cannot run securely in Azure.",
+      "id": "003-transform-externalize-local-configuration",
+      "description": "Externalize local, non-secret application configuration values out of `appsettings.json` to Azure App Configuration. Addresses issue: Local application configuration detected.",
+      "reason": "`PhotoAlbum/appsettings.json` currently contains local-only configuration values (e.g., local fallback storage path and other app settings) that should be centrally managed and environment-specific instead of baked into the deployed package.",
+      "requirements": "Move non-secret application settings currently defined only in appsettings.json/appsettings.{Environment}.json to Azure App Configuration while preserving the existing IConfiguration/IOptions<T> shape used throughout the app. Do not store secrets in App Configuration. Ensure configuration values needed at runtime are still resolvable through the existing configuration APIs, with values supplied by the deployment agent where applicable.",
+      "dependencies": [
+        "002-transform-complete-blob-storage-migration"
+      ],
+      "skills": [
+        {
+          "name": "migration-local-appsettings-azure-app-configuration-via-deployment",
+          "location": "builtin"
+        }
+      ],
       "successCriteria": {
         "passBuild": "true",
         "passUnitTests": "true"
-      },
-      "skills": [
-        {
-          "name": "migration-azure-sql-database",
-          "location": "builtin"
-        }
-      ]
+      }
     },
     {
-      "type": "setupBaseline",
-      "id": "005-setup-baseline",
-      "description": "Capture the current PhotoAlbum behavior and dependency usage so the Azure migration can be validated against a frozen baseline. Addresses issues: Local or network IO operations detected; Local application configuration detected; SQL database connection detected.",
-      "requirements": "Record the app's current test and configuration baseline, including app behavior around uploads, gallery reads, and database-backed photo metadata, before introducing Azure platform changes. Keep a clean baseline for regression checks during the migration.",
-      "reason": "Baseline capture ensures the migration preserves current functionality while cloud dependencies change.",
+      "type": "transform",
+      "id": "004-transform-review-static-content-hosting",
+      "description": "Review and modernize how static web assets (wwwroot: css/js/lib/images) are packaged and served so the app is fully container/cloud ready. Addresses issue: Static content detected.",
+      "reason": "The assessment flagged static content bundled via `PhotoAlbum/PhotoAlbum.csproj`/wwwroot as a cloud-readiness consideration; static assets should be evaluated for externalized, scalable hosting (e.g., Blob Storage-backed delivery) rather than assuming they must always be served from the application container.",
+      "requirements": "Assess the static assets served from wwwroot and, where it does not change existing page behavior or URLs relied on by the app, prepare them to be servable from Azure Blob Storage/CDN-backed storage as an option, or document why keeping them in the container is the appropriate choice for the Azure Container Apps deployment target. Do not change unrelated functionality.",
+      "dependencies": [
+        "003-transform-externalize-local-configuration"
+      ],
+      "skills": [],
       "successCriteria": {
         "passBuild": "true",
         "passUnitTests": "true"
-      },
-      "snapshotFolder": "PhotoAlbum"
-    },
-    {
-      "type": "infrastructure",
-      "id": "006-provision-azure-services",
-      "description": "Provision the Azure resources needed to host the migrated PhotoAlbum application and its data services. Addresses issues: Local application configuration detected; SQL database connection detected; Local or network IO operations detected.",
-      "requirements": "Create the Azure resource set required for the modernized app, including a container host for the web application, a managed database for persisted photo metadata, storage for uploaded content, and Azure configuration services for app settings and secrets. Keep the infrastructure aligned with the application's runtime, data storage, and security requirements while minimizing manual configuration.",
-      "iacType": "bicep",
-      "provision": true,
-      "skills": [
-        {
-          "name": "infrastructure-bicep-generation",
-          "location": "builtin"
-        }
-      ]
+      }
     },
     {
       "type": "integrationTest",
-      "id": "007-integrationTest",
+      "id": "005-integrationTest",
       "description": "Build integration tests for migrated Azure services and run post-migration verification",
-      "requirements": "Create or update integration tests to validate the migrated Azure configuration, photo storage flow, and database connectivity against the frozen baseline before deployment. Verify the app works end-to-end with Azure-managed services and no local-only dependencies remain.",
+      "reason": "Confirms that the blob storage, configuration, and static content changes preserve existing photo upload/download/delete and gallery browsing behavior.",
+      "requirements": "Use Mock mode: mock Azure Blob Storage, Azure SQL Database, and Azure App Configuration dependencies. Verify photo upload, retrieval, deletion, and configuration resolution behavior against the frozen baseline test specification.",
       "dependencies": [
-        "005-setup-baseline",
-        "006-provision-azure-services",
-        "001-upgrade-dotnet-latest-lts",
-        "002-transform-config-and-secrets",
-        "003-transform-photo-storage-to-blob",
-        "004-transform-database-to-azure-sql"
+        "001-setupBaseline",
+        "002-transform-complete-blob-storage-migration",
+        "003-transform-externalize-local-configuration",
+        "004-transform-review-static-content-hosting"
       ]
     },
     {
       "type": "security",
-      "id": "008-security-cve-remediation",
-      "description": "Scan and remediate dependency vulnerabilities and secure configuration issues before the Azure deployment. Addresses issues: Hardcoded sensitive data detected; Connection strings without configuration builders detected; Local application configuration detected; Static content detected.",
-      "requirements": "Review the application's dependencies and deployment configuration for CVEs and security drift, then upgrade the minimum necessary packages to patched versions. Document any major-version upgrade risk and verify the app still builds and test coverage remains valid after remediation. Incorporate the Azure security baseline by removing hard-coded secrets and local-only configuration from the operating model.",
-      "reason": "A secure Azure deployment requires patched dependencies and a clean configuration model.",
-      "successCriteria": {
-        "passBuild": "true",
-        "passUnitTests": "true"
-      },
+      "id": "006-security-cve-remediation",
+      "description": "Scan all project dependencies for known CVEs and remediate any identified vulnerabilities to ensure the application is secure before deployment.",
+      "reason": "Ensures the modernized application is free of known security vulnerabilities before it is deployed to Azure.",
+      "requirements": "Upgrade vulnerable dependencies to the minimum patched version. If a CVE fix requires a major version upgrade, document the affected dependency, the current version, the upgraded major version, and the breaking change risk. Verify that the project builds and all tests pass after remediation.",
       "dependencies": [
-        "001-upgrade-dotnet-latest-lts",
-        "002-transform-config-and-secrets",
-        "003-transform-photo-storage-to-blob",
-        "004-transform-database-to-azure-sql"
+        "004-transform-review-static-content-hosting"
       ],
       "skills": [
         {
           "name": "validate-cves-and-fix",
           "location": "builtin"
         }
-      ]
-    },
-    {
-      "type": "containerization",
-      "id": "009-containerize-for-azure",
-      "description": "Package the upgraded PhotoAlbum app for Azure Container Apps and other managed hosting scenarios. Addresses issues: Static content detected; Local application configuration detected; Local or network IO operations detected.",
-      "requirements": "Prepare the application for Azure-native container hosting so the migrated app can run consistently in an Azure environment. Keep the container configuration aligned with the application's Azure-managed storage, database, and configuration model and use the existing Dockerfile or equivalent build path.",
-      "dockerfilePath": "Dockerfile",
-      "dependencies": [
-        "007-integrationTest"
-      ]
+      ],
+      "successCriteria": {
+        "passBuild": "true",
+        "passUnitTests": "true"
+      }
     },
     {
       "type": "deployment",
-      "id": "010-deploy-to-azure-container-apps",
-      "description": "Deploy the modernized PhotoAlbum to Azure Container Apps with managed identity and Azure-hosted dependencies. Addresses issues: Local application configuration detected; SQL database connection detected; Local or network IO operations detected; Static content detected.",
-      "requirements": "Deploy the application to a managed Azure hosting environment using the Azure Container Apps platform and the infrastructure provisioned for storage, database, configuration, and secrets. The deployment should rely on managed identity and environment-based configuration instead of file-based local settings.",
-      "targetAzureService": "azurecontainerapp",
-      "resourceStatus": "new service",
-      "deploymentTool": "bicep",
+      "id": "007-deployment-container-apps",
+      "description": "Deploy the modernized PhotoAlbum application to the existing Azure Container Apps infrastructure defined in the repository.",
+      "reason": "Completes the migration by deploying the updated application using the infrastructure and container definition already present in the repo.",
+      "requirements": "Deploy using the existing `infra/main.bicep`, `azure.yaml`, and `Dockerfile` already defined in the repository. Do not provision new infrastructure; reuse existing resources and container app environment.",
       "dependencies": [
-        "006-provision-azure-services",
-        "008-security-cve-remediation",
-        "009-containerize-for-azure"
+        "005-integrationTest",
+        "006-security-cve-remediation"
       ],
       "skills": [
         {
           "name": "azcli-containerapp-deploy",
           "location": "builtin"
         }
-      ]
+      ],
+      "targetAzureService": "azurecontainerapp",
+      "resourceStatus": "Existing infrastructure already defined in repository (infra/main.bicep, azure.yaml, Dockerfile)",
+      "deploymentTool": "bicep"
     }
   ],
   "metadata": {
     "planName": "modernization-plan",
     "projectName": "PhotoAlbum",
     "language": "dotnet",
-    "createdAt": "2026-09-23T09:46:09Z",
+    "createdAt": "2026-09-23T12:53:10+02:00",
     "version": "1.0"
   }
 }
