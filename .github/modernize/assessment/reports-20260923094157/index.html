@@ -1,0 +1,856 @@
+﻿<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Consolidated Assessment Report</title>
+<style>
+:root {
+  --fontFamilyBase: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  --colorNeutralForeground1: #242424;
+  --colorNeutralForeground2: #424242;
+  --colorNeutralForeground3: #616161;
+  --colorNeutralBackground1: #fff;
+  --colorNeutralBackground2: #fafafa;
+  --colorNeutralBackground3: #f5f5f5;
+  --colorNeutralBackground4: #f0f0f0;
+  --colorNeutralStroke1: #d1d1d1;
+  --colorNeutralStroke2: #e0e0e0;
+  --colorBrandBackground: #0f6cbd;
+  --colorBrandForeground1: #0f6cbd;
+  --shadowCard: 0 2px 4px rgba(0,0,0,0.14), 0 0 2px rgba(0,0,0,0.12);
+  --borderRadiusMedium: 4px;
+  --dvSlot1: #637CEF;
+  --dvSlot2: #E3008C;
+  --dvSlot3: #00B7C3;
+  --dvSlot4: #986F0B;
+  --dvGray: #A19F9D;
+  --vizGreenShade20: #0F6B47;
+  --vizGreenShade10: #117A50;
+  --vizGreenPrimary: #168A5A;
+  --vizGreenTint10: #3AAA70;
+  --vizGreenTint20: #6BBF8E;
+  --vizGreenTint30: #96D7AF;
+  --vizOrchidShade20: #553078;
+  --vizOrchidShade10: #70449A;
+  --vizOrchidPrimary: #8764B8;
+  --vizOrchidTint10: #9373C0;
+  --vizOrchidTint20: #A48CCC;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: var(--fontFamilyBase); background: #fafafa; color: var(--colorNeutralForeground1); line-height: 1.4; }
+.report { max-width: 1320px; margin: 0 auto; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+.report-title { display: flex; flex-direction: column; gap: 4px; }
+.report-title h1 { font-size: 22px; font-weight: 600; line-height: 30px; color: var(--colorNeutralForeground1); }
+.report-title .date { font-size: 14px; font-weight: 400; line-height: 20px; color: var(--colorNeutralForeground2); }
+.report-tabs { display: flex; gap: 4px; flex-wrap: wrap; align-items: flex-end; margin: 4px 0 8px; border-bottom: 1px solid var(--colorNeutralStroke2); }
+.report-tab { padding: 10px 14px 9px; border: none; border-bottom: 3px solid transparent; border-radius: 4px 4px 0 0; background: transparent; font: inherit; font-size: 14px; line-height: 20px; color: var(--colorNeutralForeground2); cursor: pointer; transition: background 120ms ease, color 120ms ease, border-color 120ms ease; }
+.report-tab:hover { background: var(--colorNeutralBackground3); color: var(--colorNeutralForeground1); }
+.report-tab.is-active { color: var(--colorBrandBackground); border-bottom-color: var(--colorBrandBackground); font-weight: 600; }
+.report-tab-panel { display: none; flex-direction: column; gap: 20px; }
+.report-tab-panel.is-active { display: flex; }
+.report-section { display: flex; flex-direction: column; gap: 20px; }
+.section-header { display: flex; flex-direction: column; gap: 4px; }
+.section-header-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.section-header h2 { font-size: 17px; font-weight: 600; line-height: 24px; color: var(--colorNeutralForeground1); }
+.section-header .subtitle { font-size: 14px; font-weight: 400; line-height: 20px; color: var(--colorNeutralForeground2); }
+.section-toggle-button { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: none; border-radius: 8px; background: transparent; color: var(--colorNeutralForeground2); cursor: pointer; flex-shrink: 0; transition: background 120ms ease, color 120ms ease; }
+.section-toggle-button:hover, .section-toggle-button:focus-visible { background: var(--colorNeutralBackground3); color: var(--colorNeutralForeground1); outline: none; }
+.section-toggle-button svg { width: 18px; height: 18px; }
+.section-toggle-button .icon-collapse { display: none; }
+.report-section.is-collapsed .section-toggle-button .icon-expand { display: none; }
+.report-section.is-collapsed .section-toggle-button .icon-collapse { display: block; }
+.report-section.is-collapsed > :not(.section-header) { display: none; }
+.subsection-title { font-size: 14px; font-weight: 600; line-height: 20px; color: var(--colorNeutralForeground1); }
+.subsection-supporting-copy { color: var(--colorNeutralForeground2); font-size: 13px; line-height: 18px; margin: -2px 0 2px; }
+/* Modernization plan / waves */
+.modernization-plan { --plan-wave-gap: 6px; background: var(--colorNeutralBackground1); border: 1px solid var(--colorNeutralStroke2); border-radius: var(--borderRadiusMedium); box-shadow: var(--shadowCard); display: flex; flex-direction: column; gap: var(--plan-wave-gap); padding: 16px 20px; }
+.modernization-wave { display: grid; gap: 12px; grid-template-columns: 24px minmax(0, 1fr); padding: 8px 0; position: relative; }
+.wave-marker { min-height: 100%; position: relative; }
+.wave-marker::before { background: var(--colorNeutralBackground1); border: 2px solid var(--colorNeutralForeground3); border-radius: 999px; box-sizing: border-box; content: ''; height: 12px; left: 50%; position: absolute; top: 6px; transform: translateX(-50%); width: 12px; z-index: 1; }
+.modernization-wave:not(:last-child) .wave-marker::after { background: var(--colorNeutralStroke1); bottom: calc(-1 * (var(--plan-wave-gap) + 16px)); content: ''; left: 50%; position: absolute; top: calc(6px + 12px); transform: translateX(-50%); width: 1px; }
+.wave-body { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.wave-title-row { align-items: center; display: flex; flex-wrap: wrap; gap: 8px; }
+.wave-title { font-size: 14px; font-weight: 600; line-height: 20px; }
+.wave-copy { color: var(--colorNeutralForeground2); font-size: 14px; line-height: 20px; }
+.wave-meta { align-items: center; color: var(--colorNeutralForeground3); display: flex; flex-wrap: wrap; font-size: 12px; gap: 8px; line-height: 16px; }
+.wave-apps { color: var(--colorNeutralForeground3); font-size: 13px; }
+.wave-app-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.wave-app-pill { background: var(--colorNeutralBackground1); border: 1px solid var(--colorNeutralStroke1); border-radius: 999px; color: var(--colorNeutralForeground2); display: inline-flex; font-size: 12px; font-weight: 600; line-height: 16px; padding: 3px 8px; white-space: nowrap; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+/* Insights card */
+.insights-card { background: var(--colorNeutralBackground1); border-radius: 8px; box-shadow: var(--shadowCard); padding: 16px 20px; display: flex; flex-direction: column; gap: 8px; }
+.insights-title { font-size: 15px; font-weight: 600; color: var(--colorNeutralForeground1); }
+.insights-body { font-size: 14px; line-height: 22px; color: var(--colorNeutralForeground2); display: flex; flex-direction: column; gap: 6px; }
+.insights-body p { margin: 0; }
+.insights-body strong { font-weight: 600; color: var(--colorNeutralForeground1); }
+
+/* Overview brief grid */
+.overview-top-row { display: grid; grid-template-columns: 1fr; gap: 16px; align-items: stretch; }
+.overview-chart-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.overview-chart-row > * { height: auto; min-height: 320px; }
+.overview-chart-row .chart-card .card-header { padding: 12px 20px 6px; }
+.overview-chart-row .chart-card .card-header-text .title { font-size: 17px; line-height: 24px; }
+/* Issue summary card */
+.portfolio-readiness-card { background: var(--colorNeutralBackground1); border-radius: var(--borderRadiusMedium); box-shadow: var(--shadowCard); overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
+.prc-header { display: flex; align-items: flex-start; justify-content: space-between; padding: 14px 20px 8px; gap: 16px; flex-shrink: 0; }
+.prc-header-left { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.prc-title { font-size: 15px; font-weight: 600; line-height: 22px; color: var(--colorNeutralForeground1); }
+.prc-stat-line { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.prc-stat-number { font-size: 22px; font-weight: 700; color: var(--colorNeutralForeground1); line-height: 1.1; letter-spacing: -0.5px; }
+.prc-stat-text { font-size: 13px; color: var(--colorNeutralForeground2); line-height: 1.4; }
+.prc-body { display: flex; flex-direction: column; padding: 0 20px; flex: 1; overflow-y: auto; max-height: 400px; }
+.prc-app-row { display: grid; grid-template-columns: minmax(0, 148px) 1fr 76px 82px; align-items: center; gap: 12px; padding: 0; min-height: 44px; border-bottom: 1px solid var(--colorNeutralStroke2); }
+.prc-app-row:last-child { border-bottom: none; }
+.prc-app-name { font-size: 13px; font-weight: 500; color: var(--colorNeutralForeground1); line-height: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.prc-bar-track { height: 14px; background: var(--colorNeutralBackground3); border-radius: 2px; overflow: hidden; display: flex; flex-direction: row; cursor: default; }
+.prc-bar-segment { height: 100%; flex-shrink: 0; transition: opacity 0.15s ease; }
+.prc-bar-segment[data-tooltip-title] { cursor: pointer; }
+.prc-bar-segment.mandatory { background: var(--dvSlot2); }
+.prc-bar-segment.potential { background: var(--dvSlot1); opacity: 0.85; }
+.prc-bar-segment.optional { background: var(--dvGray); opacity: 0.75; }
+.prc-bar-track.seg-hovering .prc-bar-segment { opacity: 0.18 !important; }
+.prc-bar-track.seg-hovering .prc-bar-segment.seg-active { opacity: 1 !important; }
+.prc-count { font-size: 12px; font-weight: 600; color: var(--colorNeutralForeground1); text-align: right; white-space: nowrap; }
+.prc-effort-cell { display: flex; justify-content: flex-end; }
+.prc-effort-cell .effort-badge { background: var(--colorNeutralBackground3); border: 1px solid var(--colorNeutralStroke2); border-radius: 999px; padding: 2px 8px; font-size: 12px; font-weight: 600; color: var(--colorNeutralForeground2); }
+.prc-footer { display: flex; align-items: center; justify-content: space-between; padding: 9px 20px 12px; gap: 16px; flex-wrap: wrap; flex-shrink: 0; }
+.prc-footer-legend { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.prc-footer-legend-item { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--colorNeutralForeground2); }
+@media (max-width: 640px) { .prc-app-row { grid-template-columns: minmax(0, 130px) 1fr 72px; } .prc-effort-cell { display: none; } }
+@media (max-width: 720px) { .overview-chart-row { grid-template-columns: 1fr; } }
+.overview-cost-card .chart-body-cost { padding: 14px 20px 16px; }
+.chart-body-cost { align-items: stretch; padding: 16px; }
+.cost-total-value { font-size: 28px; line-height: 36px; font-weight: 700; color: var(--colorNeutralForeground1); }
+.cost-total-meta { font-size: 12px; line-height: 16px; color: var(--colorNeutralForeground2); }
+.architecture-cost-breakdown-app { color: var(--colorNeutralForeground2); font-size: 12px; line-height: 16px; }
+
+/* Modernization summary */
+
+/* Portfolio overview */
+.portfolio-snapshot-card { background: var(--colorNeutralBackground1); border-radius: var(--borderRadiusMedium); box-shadow: var(--shadowCard); overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
+.portfolio-snapshot-title { color: var(--colorNeutralForeground1); font-size: 17px; font-weight: 600; line-height: 24px; }
+.brief-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 14px 18px 4px; }
+.portfolio-overview-header { align-items: flex-start; }
+.portfolio-overview-heading { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.portfolio-overview-subtitle { color: var(--colorNeutralForeground2); font-size: 12px; line-height: 16px; }
+.portfolio-overview-body { display: flex; flex-direction: column; gap: 10px; padding: 12px 20px 16px; }
+.portfolio-overview-list { display: grid; gap: 0; border-top: 1px solid var(--colorNeutralStroke2); max-height: 360px; overflow-y: auto; }
+.portfolio-overview-item { align-items: start; border-bottom: 1px solid var(--colorNeutralStroke2); display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr) auto; padding: 10px 0 12px; }
+.portfolio-overview-row-main { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.portfolio-overview-issue-line { align-items: center; display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.portfolio-overview-item-name { color: var(--colorNeutralForeground1); font-size: 14px; font-weight: 600; line-height: 20px; }
+.portfolio-overview-item-issues { color: var(--colorNeutralForeground3); font-size: 12px; font-weight: 400; line-height: 16px; }
+.portfolio-overview-item-effort { font-size: 12px; line-height: 16px; }
+.portfolio-overview-issues-stack.issues-stack { display: flex; flex-direction: row; flex-wrap: wrap; gap: 8px 14px; }
+.portfolio-overview-issues-stack .issues-stack-item { gap: 4px; }
+.portfolio-overview-issues-stack .issues-stack-label { white-space: nowrap; }
+.portfolio-overview-breakdown-inline { gap: 6px 12px; padding-top: 2px; }
+.portfolio-overview-breakdown-inline .issues-stack-label { color: var(--colorNeutralForeground3); font-size: 12px; }
+.portfolio-overview-breakdown-inline .issues-stack-count { font-weight: 600; }
+.portfolio-overview-footnote { color: var(--colorNeutralForeground3); font-size: 12px; line-height: 16px; padding-top: 2px; }
+.card-action { color: var(--colorBrandBackground); display: inline-flex; align-items: center; font-size: 12px; font-weight: 600; line-height: 16px; min-height: 24px; padding: 2px 6px; text-decoration: none; border-radius: 4px; }
+.card-action:hover { background: var(--colorNeutralBackground3); text-decoration: underline; }
+/* Plan needed card */
+.plan-needed-card { background: var(--colorNeutralBackground1); border-radius: var(--borderRadiusMedium); box-shadow: var(--shadowCard); overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
+.plan-needed-title { color: var(--colorNeutralForeground1); font-size: 17px; font-weight: 600; line-height: 24px; }
+.plan-needed-body { padding: 12px 20px 16px; }
+.plan-needed-stat { color: var(--colorNeutralForeground1); display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; }
+.plan-needed-count { font-size: 28px; font-weight: 600; line-height: 36px; }
+.plan-needed-unit { color: var(--colorNeutralForeground2); font-size: 14px; line-height: 20px; }
+.plan-needed-copy { color: var(--colorNeutralForeground2); font-size: 14px; line-height: 20px; margin: 6px 0 0; }
+.status-label { align-items: center; background: var(--colorNeutralBackground1); border: 1px solid var(--colorNeutralStroke1); border-radius: 999px; color: var(--colorNeutralForeground2); display: inline-flex; font-size: 12px; font-weight: 600; line-height: 16px; padding: 2px 8px; white-space: nowrap; }
+
+/* Effort badges */
+.effort-badge { display: inline-flex; align-items: center; justify-content: center; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; cursor: default; }
+.effort-badge-pill { background: var(--colorNeutralBackground3); border: 1px solid var(--colorNeutralStroke2); border-radius: 999px; padding: 2px 8px; font-size: 12px; font-weight: 600; color: var(--colorNeutralForeground2); white-space: nowrap; }
+.effort-badge-pill.help-tooltip-trigger { width: auto; height: auto; padding: 2px 8px; background: var(--colorNeutralBackground3); color: var(--colorNeutralForeground2); }
+.effort-badge-s { background: #e8f5e9; color: #2e7d32; }
+.effort-badge-m { background: #e0f7fa; color: #00695c; }
+.effort-badge-l { background: #fff3e0; color: #e65100; }
+.effort-badge-xl { background: #fce4ec; color: #c62828; }
+
+/* Repeated cell */
+.repeated-cell { color: transparent !important; }
+
+.chart-row { display: flex; gap: 20px; flex-wrap: wrap; align-items: stretch; }
+.chart-card { flex: 1 1 calc(33.333% - 14px); min-width: 0; background: var(--colorNeutralBackground1); border-radius: var(--borderRadiusMedium); box-shadow: var(--shadowCard); overflow: hidden; display: flex; flex-direction: column; }
+.chart-card .card-header { display: flex; align-items: flex-start; justify-content: space-between; padding: 12px; }
+.chart-card .card-header-text { display: flex; flex-direction: column; min-width: 0; }
+.chart-card .card-header-text .title-row { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.chart-card .card-header-text .title { font-size: 14px; font-weight: 600; line-height: 20px; color: var(--colorNeutralForeground1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chart-card .card-header-text .meta { font-size: 12px; font-weight: 400; line-height: 16px; color: var(--colorNeutralForeground3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.help-tooltip-trigger { width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; border: none; border-radius: 999px; background: transparent; color: var(--colorNeutralForeground3); padding: 0; cursor: pointer; flex-shrink: 0; }
+.help-tooltip-trigger:hover, .help-tooltip-trigger.is-active { background: var(--colorNeutralBackground3); color: var(--colorNeutralForeground2); }
+.help-tooltip-trigger svg { width: 16px; height: 16px; display: block; }
+.chart-body { display: flex; align-items: center; justify-content: center; padding: 20px; flex: 1; }
+.donut-chart { position: relative; display: flex; align-items: center; justify-content: center; }
+.donut-chart.donut-chart-sm { width: 145px; height: 145px; }
+.donut-chart.donut-chart-lg { width: 192px; height: 192px; }
+.donut-chart svg { display: block; overflow: visible; }
+.donut-slice-group { cursor: pointer; transition: opacity 120ms ease, filter 120ms ease, transform 120ms ease; }
+.donut-chart.donut-chart-sm .donut-slice-group { transform-origin: 72.5px 72.5px; }
+.donut-chart.donut-chart-lg .donut-slice-group { transform-origin: 96px 96px; }
+.donut-chart.is-hovering .donut-slice-group { opacity: 0.45; }
+.donut-slice-group.is-active { opacity: 1 !important; filter: brightness(0.98) saturate(1.08); transform: scale(1.015); }
+.donut-slice { pointer-events: auto; }
+.donut-separator { fill: var(--colorNeutralBackground1); pointer-events: none; }
+.donut-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; pointer-events: none; }
+.donut-center-value { font-size: 20px; font-weight: 600; line-height: 28px; color: var(--colorNeutralForeground1); }
+.donut-center-label { font-size: 12px; line-height: 16px; color: var(--colorNeutralForeground3); }
+.chart-tooltip { position: fixed; z-index: 20; min-width: 164px; max-width: 240px; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--colorNeutralStroke2); background: rgba(255,255,255,0.98); box-shadow: 0 12px 32px rgba(0,0,0,0.16); pointer-events: none; opacity: 0; transform: translateY(4px); transition: opacity 120ms ease, transform 120ms ease; }
+.chart-tooltip.is-visible { opacity: 1; transform: translateY(0); }
+.chart-tooltip-title { font-size: 13px; font-weight: 600; line-height: 18px; color: var(--colorNeutralForeground1); }
+.chart-tooltip-line { font-size: 12px; line-height: 16px; color: var(--colorNeutralForeground2); margin-top: 2px; }
+.legend { display: flex; gap: 16px; padding: 12px 16px; flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+.legend-dot { width: 12px; height: 12px; border-radius: 2px; flex-shrink: 0; }
+.legend-dot-blue { background: #637CEF; }
+.legend-dot-pink { background: #E3008C; }
+.legend-dot-gray { background: #A19F9D; }
+.legend-dot-teal { background: #00B7C3; }
+.legend-dot-ochre { background: #986F0B; }
+.legend-label { font-size: 12px; font-weight: 400; line-height: 16px; color: var(--colorNeutralForeground2); }
+.issues-stack { display: flex; flex-direction: column; gap: 4px; white-space: normal; }
+.issues-stack-item { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.issues-stack-label { font-size: inherit; line-height: inherit; color: inherit; white-space: nowrap; }
+.issues-stack-count { font-weight: inherit; }
+.app-link { color: var(--colorBrandBackground); text-decoration: none; font-weight: 600; }
+.app-link:hover { text-decoration: underline; }
+.data-table-section { display: flex; flex-direction: column; gap: 8px; }
+.data-table-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.table-expand-button { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: none; border-radius: 8px; background: transparent; color: var(--colorNeutralForeground2); cursor: pointer; appearance: none; box-shadow: none; transition: background 120ms ease, color 120ms ease; }
+.table-expand-button:hover, .table-expand-button:focus-visible { background: var(--colorNeutralBackground3); color: var(--colorNeutralForeground1); outline: none; }
+.table-expand-button svg { width: 18px; height: 18px; }
+.table-expand-button .icon-collapse { display: none; }
+.data-table-section.is-expanded .table-expand-button .icon-expand { display: none; }
+.data-table-section.is-expanded .table-expand-button .icon-collapse { display: block; }
+.data-grid-shell { width: 100%; overflow-x: auto; overflow-y: visible; background: transparent; border: none; border-radius: 0; }
+.data-grid { width: 100%; border-collapse: collapse; table-layout: fixed; min-width: 920px; }
+.data-grid th, .data-grid td { text-align: left; vertical-align: top; font-size: 14px; line-height: 20px; padding: 12px; border-bottom: 1px solid var(--colorNeutralStroke2); white-space: normal; word-break: break-word; overflow-wrap: anywhere; }
+.data-grid th { position: sticky; top: 0; z-index: 1; font-weight: 600; font-size: 12px; line-height: 16px; color: var(--colorNeutralForeground1); background: #f3f3f3; border-bottom: 1px solid var(--colorNeutralStroke1); }
+.header-label { display: block; white-space: normal; word-break: break-word; overflow-wrap: anywhere; padding-right: 12px; }
+.data-grid td { font-weight: 400; color: var(--colorNeutralForeground2); background: transparent; }
+.data-grid tbody tr:hover td { background: var(--colorNeutralBackground2); }
+.data-grid tbody tr:last-child td { border-bottom: none; }
+body.table-expanded { overflow: hidden; }
+body.table-expanded::before { content: ''; position: fixed; inset: 0; z-index: 20; background: rgba(0,0,0,0.18); }
+.data-table-section.is-expanded { position: fixed; inset: 24px; z-index: 30; background: var(--colorNeutralBackground1); border: 1px solid var(--colorNeutralStroke2); border-radius: 16px; box-shadow: 0 20px 48px rgba(0,0,0,0.18); padding: 20px 20px 16px; gap: 16px; overflow: hidden; }
+.data-table-section.is-expanded .data-table-header { flex: 0 0 auto; }
+.data-table-section.is-expanded .data-grid-shell { flex: 1 1 auto; min-height: 0; overflow: auto; border-top: 1px solid var(--colorNeutralStroke2); padding-top: 4px; }
+.data-table-section.is-expanded .data-grid { min-width: 100%; table-layout: auto; }
+.data-table-section.is-expanded .data-grid th, .data-table-section.is-expanded .data-grid td { overflow: visible; text-overflow: clip; white-space: normal; word-break: break-word; overflow-wrap: anywhere; vertical-align: top; }
+.data-grid .col-dependency { width: 200px; }
+.data-grid .col-components { width: 96px; }
+.data-grid .col-options { width: 200px; }
+.data-grid .col-recommendation { width: 200px; }
+.data-grid.no-horizontal-scroll { min-width: 920px; table-layout: fixed; }
+.data-grid-shell.no-horizontal-scroll-shell { overflow-x: auto; }
+.data-grid.no-horizontal-scroll th:nth-child(1), .data-grid.no-horizontal-scroll td:nth-child(1) { width: 12%; }
+.data-grid.no-horizontal-scroll th:nth-child(2), .data-grid.no-horizontal-scroll td:nth-child(2) { width: 14%; }
+.data-grid.no-horizontal-scroll th:nth-child(3), .data-grid.no-horizontal-scroll td:nth-child(3) { width: 15%; }
+.data-grid.no-horizontal-scroll th:nth-child(4), .data-grid.no-horizontal-scroll td:nth-child(4) { width: 10%; }
+.data-grid.no-horizontal-scroll th:nth-child(5), .data-grid.no-horizontal-scroll td:nth-child(5) { width: 14%; }
+.data-grid.no-horizontal-scroll th:nth-child(6), .data-grid.no-horizontal-scroll td:nth-child(6) { width: 14%; }
+.data-grid.no-horizontal-scroll th:nth-child(7), .data-grid.no-horizontal-scroll td:nth-child(7) { width: 11%; }
+.data-grid.no-horizontal-scroll th:nth-child(8), .data-grid.no-horizontal-scroll td:nth-child(8) { width: 10%; }
+.data-grid.no-horizontal-scroll th, .data-grid.no-horizontal-scroll td { white-space: normal; word-break: break-word; overflow-wrap: anywhere; vertical-align: top; }
+.data-grid.no-horizontal-scroll td.issues-cell { white-space: normal; overflow: visible; text-overflow: clip; }
+.cost-summary { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.cost-total-label { font-size: 12px; line-height: 16px; color: var(--colorNeutralForeground3); }
+.cost-note { font-size: 12px; line-height: 16px; color: var(--colorNeutralForeground3); }
+.cost-disclaimer { display: flex; gap: 10px; align-items: flex-start; background: var(--colorPaletteYellowBackground1, #fff8e1); border: 1px solid var(--colorPaletteYellowBorder1, #ffd54f); border-radius: var(--borderRadiusMedium); padding: 12px 16px; margin-top: 16px; }
+.cost-disclaimer-icon { flex-shrink: 0; width: 20px; height: 20px; color: var(--colorPaletteYellowForeground2, #8a6d00); }
+.cost-disclaimer-text { font-size: 12px; line-height: 18px; color: var(--colorNeutralForeground2); margin: 0; }
+.cost-methodology { margin-top: 12px; }
+.cost-methodology-toggle { font-size: 12px; font-weight: 600; color: var(--colorBrandForegroundLink); cursor: pointer; list-style: none; }
+.cost-methodology-toggle::-webkit-details-marker { display: none; }
+.cost-methodology-toggle::before { content: "▸ "; }
+.cost-methodology[open] > .cost-methodology-toggle::before { content: "▾ "; }
+.cost-methodology-content { margin-top: 10px; padding: 12px 16px; background: var(--colorNeutralBackground2); border-radius: var(--borderRadiusMedium); font-size: 12px; line-height: 18px; color: var(--colorNeutralForeground2); }
+.cost-methodology-content p { margin: 0 0 8px; }
+.cost-methodology-content p:last-child { margin-bottom: 0; }
+.cost-methodology-content ul { margin: 4px 0 8px; padding-left: 20px; }
+.cost-methodology-content li { margin-bottom: 4px; }
+.cost-methodology-content a { color: var(--colorBrandForegroundLink); text-decoration: underline; }
+.cost-methodology-content a:hover { color: var(--colorBrandForegroundLinkHover); }
+.executive-summary-card { background: var(--colorNeutralBackground1); border-radius: var(--borderRadiusMedium); box-shadow: var(--shadowCard); padding: 14px 18px 16px; }
+.executive-summary-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+.executive-summary-title { color: var(--colorNeutralForeground1); font-size: 17px; font-weight: 600; line-height: 24px; }
+.executive-summary-badge { background: var(--colorNeutralBackground2); border: 1px solid var(--colorNeutralStroke2); border-radius: 999px; color: var(--colorNeutralForeground2); flex: 0 0 auto; font-size: 11px; font-weight: 600; line-height: 16px; padding: 2px 8px; }
+.executive-summary-copy { color: var(--colorNeutralForeground2); font-size: 14px; line-height: 20px; max-width: none; }
+.architecture-cost-highlight { display: grid; grid-template-columns: minmax(180px, 0.85fr) minmax(0, 1.4fr); gap: 14px; align-items: stretch; margin: 8px 0 10px; }
+.architecture-cost-total { display: flex; flex-direction: column; gap: 4px; }
+.architecture-cost-value { font-size: 32px; font-weight: 700; color: var(--colorNeutralForeground1); letter-spacing: -0.02em; line-height: 38px; }
+.architecture-cost-period { font-size: 13px; font-weight: 600; color: var(--colorNeutralForeground2); letter-spacing: 0; line-height: 18px; margin-left: 3px; }
+.architecture-cost-breakdown { display: grid; gap: 6px; align-content: center; }
+.architecture-cost-breakdown-item { display: flex; align-items: baseline; justify-content: space-between; font-size: 12px; line-height: 17px; color: var(--colorNeutralForeground2); gap: 12px; }
+.architecture-cost-breakdown-value { font-size: 12px; font-weight: 700; color: var(--colorNeutralForeground1); white-space: nowrap; }
+.architecture-cost-breakdown-share { font-size: 11px; font-weight: 600; color: var(--colorNeutralForeground3); }
+.architecture-cost-breakdown-more { font-size: 12px; font-weight: 600; color: var(--colorBrandForegroundLink); cursor: pointer; text-decoration: none; }
+.architecture-cost-breakdown-more:hover { text-decoration: underline; }
+.cost-total-row td { font-weight: 600; border-top: 2px solid var(--colorNeutralStroke1); background: var(--colorNeutralBackground2); }
+.cost-total-row:hover td { background: var(--colorNeutralBackground2); }
+.cost-total-label-cell { text-align: left; }
+.cost-total-price-cell { font-size: 14px; }
+.bar-chart-container { width: 100%; height: 100%; display: flex; flex-direction: column; padding: 2px 8px 0; min-width: fit-content; }
+.chart-body-tech { padding: 8px 10px 6px; align-items: stretch; flex: 1; min-height: 200px; overflow-x: auto; }
+.bar-chart-layout { display: flex; flex: 1; min-height: 0; }
+.bar-chart-y-axis { display: flex; flex-direction: column; justify-content: space-between; height: calc(100% - 24px); padding-right: 6px; min-width: 30px; margin-top: 4px; position: sticky; left: 0; background: var(--colorNeutralBackground1); z-index: 1; }
+.bar-chart-y-axis span { font-size: 10px; color: var(--colorNeutralForeground3); text-align: right; line-height: 14px; white-space: nowrap; }
+.bar-chart-y-label { font-size: 10px; font-weight: 600; color: var(--colorNeutralForeground2); writing-mode: vertical-rl; transform: rotate(180deg); text-align: center; padding-right: 2px; }
+.bar-chart-grid { flex: 1; display: flex; flex-direction: column; position: relative; min-height: 0; }
+.bar-chart-bars { flex: 1; display: flex; align-items: flex-end; justify-content: space-around; position: relative; min-height: 0; border-bottom: 1px solid var(--colorNeutralStroke2); }
+.bar-wrapper { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; flex: 1; height: 100%; min-width: 48px; }
+.bar-wrapper[data-tooltip-title] { cursor: pointer; }
+.bar-chart-bars.is-hovering .bar-wrapper { opacity: 0.45; transition: opacity 120ms ease; }
+.bar-wrapper.is-active { opacity: 1 !important; }
+.bar-wrapper.is-active .bar { transform: translateY(-2px); filter: brightness(0.98) saturate(1.06); }
+.bar-value { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(var(--bar-height, 0%) + 8px); font-size: 12px; font-weight: 600; line-height: 16px; color: var(--colorNeutralForeground1); }
+.bar { width: 24px; height: var(--bar-height, 0%); border-radius: 2px 2px 0 0; min-height: 2px; transition: transform 120ms ease, filter 120ms ease; background: var(--bar-color, var(--dvSlot1)); }
+.bar-x-labels { display: flex; justify-content: space-around; padding-top: 2px; }
+.bar-x-labels span { font-size: 10px; color: var(--colorNeutralForeground3); text-align: center; flex: 1; line-height: 14px; }
+.bar-x-axis-label { font-size: 10px; font-weight: 600; color: var(--colorNeutralForeground2); text-align: center; padding-top: 1px; }
+.technology-chart .bar-value { display: none; }
+.technology-chart .bar-x-labels span { font-size: 9px; line-height: 12px; overflow: hidden; text-overflow: ellipsis; }
+.effort-chart .bar-value { display: none; }
+/* Application topology */
+.topology-selector { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--colorNeutralBackground1); border: 1px solid var(--colorNeutralStroke2); border-radius: var(--borderRadiusMedium); box-shadow: var(--shadowCard); padding: 12px 16px; }
+.topology-selector-label { font-size: 13px; font-weight: 600; color: var(--colorNeutralForeground2); }
+.topology-select { font: inherit; font-size: 14px; line-height: 20px; color: var(--colorNeutralForeground1); background: var(--colorNeutralBackground1); border: 1px solid var(--colorNeutralStroke1); border-radius: var(--borderRadiusMedium); padding: 6px 30px 6px 10px; min-width: 240px; cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23616161'%3E%3Cpath d='M5.2 7.5a.7.7 0 0 1 1 0l3.8 3.8 3.8-3.8a.7.7 0 1 1 1 1l-4.3 4.3a.7.7 0 0 1-1 0L5.2 8.5a.7.7 0 0 1 0-1Z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; background-size: 18px; }
+.topology-select:hover { border-color: var(--colorNeutralStroke1); background-color: var(--colorNeutralBackground2); }
+.topology-select:focus-visible { outline: 2px solid var(--colorBrandBackground); outline-offset: 1px; }
+.topology-selector-count { margin-left: auto; font-size: 12px; color: var(--colorNeutralForeground3); }
+.topology-app { display: flex; flex-direction: column; gap: 20px; }
+.topology-app.is-hidden { display: none; }
+.topology-app-header { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 12px; }
+.topology-app-name { font-size: 19px; font-weight: 600; line-height: 26px; color: var(--colorNeutralForeground1); }
+.topology-app-meta { font-size: 13px; color: var(--colorNeutralForeground3); }
+.topology-diagram-card { background: var(--colorNeutralBackground1); border: 1px solid var(--colorNeutralStroke2); border-radius: var(--borderRadiusMedium); box-shadow: var(--shadowCard); padding: 24px 16px; overflow: auto; text-align: center; height: 460px; display: flex; align-items: center; justify-content: center; }
+.topology-diagram-card .mermaid { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
+.topology-diagram-card .mermaid svg { width: 100% !important; height: 100% !important; max-width: 100%; max-height: 412px; }
+.topology-diagram-fallback { font-size: 13px; color: var(--colorNeutralForeground3); white-space: pre-wrap; text-align: left; }
+.dep-type-badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; background: #e3f0fb; color: #0f548c; white-space: nowrap; }
+.dep-type-badge.dep-type-mq { background: #fbeef6; color: #9b1d6e; }
+.dep-evidence { font-size: 12px; line-height: 18px; color: var(--colorNeutralForeground2); background: var(--colorNeutralBackground3); border-radius: 4px; padding: 1px 6px; word-break: break-all; }
+@media (max-width: 1120px) { .chart-card { flex-basis: calc(50% - 10px); } }
+@media (max-width: 720px) { .chart-card { flex-basis: 100%; min-height: 360px; } }
+
+.rulebook-badge {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 0.5em;
+    font-size: 0.85rem;
+    padding: 0;
+    border-radius: 4px;
+    background: transparent;
+    border: 1px solid rgba(46, 160, 67, 0.3);
+    color: #2eA043;
+    cursor: pointer;
+    opacity: 0.9;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: opacity 0.2s, background 0.2s;
+}
+.rulebook-badge:hover {
+    opacity: 1.0;
+    background: rgba(46, 160, 67, 0.1);
+}
+</style>
+<script>
+function activateReportTab(targetId) {
+  document.querySelectorAll('.report-tab').forEach(t => { t.classList.remove('is-active'); t.setAttribute('aria-selected', 'false'); t.tabIndex = -1; });
+  document.querySelectorAll('.report-tab-panel').forEach(p => p.classList.remove('is-active'));
+  const tab = document.querySelector(`.report-tab[data-target="${targetId}"]`);
+  if (tab) { tab.classList.add('is-active'); tab.setAttribute('aria-selected', 'true'); tab.tabIndex = 0; }
+  const panel = document.getElementById(targetId);
+  if (panel) panel.classList.add('is-active');
+  // Lazily render the selected app's topology graph the first time the tab is shown
+  // (Mermaid cannot measure elements inside a display:none panel).
+  if (targetId === 'tab-topology' && typeof window.__renderActiveTopologyApp === 'function') {
+    window.__renderActiveTopologyApp();
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Tab switching
+  const reportTabs = Array.from(document.querySelectorAll('.report-tab[data-target]'));
+  reportTabs.forEach(tab => {
+    tab.addEventListener('click', () => activateReportTab(tab.dataset.target));
+    tab.addEventListener('keydown', e => {
+      const idx = reportTabs.indexOf(tab);
+      let next = null;
+      if (e.key === 'ArrowRight') next = (idx + 1) % reportTabs.length;
+      if (e.key === 'ArrowLeft') next = (idx - 1 + reportTabs.length) % reportTabs.length;
+      if (e.key === 'Home') next = 0;
+      if (e.key === 'End') next = reportTabs.length - 1;
+      if (next === null) return;
+      e.preventDefault();
+      reportTabs[next].focus();
+      activateReportTab(reportTabs[next].dataset.target);
+    });
+  });
+
+  // Card action links that switch tabs
+  document.querySelectorAll('[data-report-tab-link]').forEach(link => {
+    link.addEventListener('click', e => {
+      e.preventDefault();
+      activateReportTab(link.dataset.reportTabLink);
+    });
+  });
+
+  const tooltip = document.createElement('div');
+  tooltip.className = 'chart-tooltip';
+  tooltip.setAttribute('role', 'tooltip');
+  document.body.appendChild(tooltip);
+  let expandedSection = null;
+
+  const renderTooltipContent = (title, lineItems = []) => {
+    tooltip.replaceChildren();
+    const titleElement = document.createElement('div');
+    titleElement.className = 'chart-tooltip-title';
+    titleElement.textContent = title;
+    tooltip.appendChild(titleElement);
+    lineItems.filter(Boolean).forEach(line => {
+      const lineElement = document.createElement('div');
+      lineElement.className = 'chart-tooltip-line';
+      lineElement.textContent = line;
+      tooltip.appendChild(lineElement);
+    });
+  };
+  const renderTooltip = (target) => {
+    const title = target.dataset.tooltipTitle ?? '';
+    renderTooltipContent(title, [target.dataset.tooltipLine1, target.dataset.tooltipLine2, target.dataset.tooltipLine3]);
+  };
+  const positionTooltip = (event) => {
+    const o = 16, tw = tooltip.offsetWidth, th = tooltip.offsetHeight;
+    let left = event.clientX + o, top = event.clientY + o;
+    if (left + tw > window.innerWidth - 12) left = event.clientX - tw - o;
+    if (top + th > window.innerHeight - 12) top = event.clientY - th - o;
+    tooltip.style.left = `${Math.max(12, left)}px`;
+    tooltip.style.top = `${Math.max(12, top)}px`;
+  };
+  const clearInteractiveState = () => {
+    document.querySelectorAll('.donut-chart.is-hovering').forEach(c => c.classList.remove('is-hovering'));
+    document.querySelectorAll('.bar-chart-bars.is-hovering').forEach(c => c.classList.remove('is-hovering'));
+    document.querySelectorAll('.donut-slice-group.is-active').forEach(s => s.classList.remove('is-active'));
+    document.querySelectorAll('.bar-wrapper.is-active').forEach(b => b.classList.remove('is-active'));
+    document.querySelectorAll('.help-tooltip-trigger.is-active').forEach(t => t.classList.remove('is-active'));
+    document.querySelectorAll('.prc-bar-track.seg-hovering').forEach(t => t.classList.remove('seg-hovering'));
+    document.querySelectorAll('.prc-bar-segment.seg-active').forEach(s => s.classList.remove('seg-active'));
+  };
+  const showTooltip = (target, event) => {
+    const donutChart = target.closest('.donut-chart');
+    const barChart = target.closest('.bar-chart-bars');
+    const barTrack = target.closest('.prc-bar-track');
+    clearInteractiveState();
+    if (donutChart) donutChart.classList.add('is-hovering');
+    if (barChart) barChart.classList.add('is-hovering');
+    if (barTrack) { barTrack.classList.add('seg-hovering'); target.classList.add('seg-active'); }
+    target.classList.add('is-active');
+    renderTooltip(target);
+    tooltip.classList.add('is-visible');
+    positionTooltip(event);
+  };
+  const hideTooltip = () => { clearInteractiveState(); tooltip.classList.remove('is-visible'); };
+
+  const getGridTooltipTarget = (node) => {
+    const candidate = node.closest('.header-label, .data-grid th, .data-grid td');
+    if (!candidate) return null;
+    const cell = candidate.closest('th, td') ?? candidate;
+    if (cell.classList.contains('issues-cell')) return null;
+    const measuredElement = candidate.classList.contains('header-label') ? candidate : cell.matches('th') ? cell.querySelector('.header-label') ?? cell : cell;
+    const text = measuredElement.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+    if (!text || measuredElement.scrollWidth <= measuredElement.clientWidth + 1) return null;
+    return { measuredElement, text };
+  };
+  const showGridTooltip = (target, event) => { renderTooltipContent(target.text); tooltip.classList.add('is-visible'); positionTooltip(event); };
+
+  const setSectionExpandedState = (section, isExpanded) => {
+    const button = section.querySelector('.table-expand-button');
+    if (!button) return;
+    section.classList.toggle('is-expanded', isExpanded);
+    button.setAttribute('aria-label', isExpanded ? 'Collapse table' : 'Expand table');
+    button.setAttribute('title', isExpanded ? 'Collapse table' : 'Expand table');
+  };
+
+  document.querySelectorAll('.data-table-section').forEach(section => {
+    const button = section.querySelector('.table-expand-button');
+    if (!button) return;
+    setSectionExpandedState(section, false);
+    button.addEventListener('click', () => {
+      const shouldExpand = !section.classList.contains('is-expanded');
+      if (expandedSection && expandedSection !== section) setSectionExpandedState(expandedSection, false);
+      if (shouldExpand) { expandedSection = section; setSectionExpandedState(section, true); document.body.classList.add('table-expanded'); }
+      else { setSectionExpandedState(section, false); expandedSection = null; document.body.classList.remove('table-expanded'); }
+    });
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape' || !expandedSection) return;
+    const button = expandedSection.querySelector('.table-expand-button');
+    setSectionExpandedState(expandedSection, false);
+    expandedSection = null;
+    document.body.classList.remove('table-expanded');
+    button?.focus();
+  });
+
+  document.addEventListener('mouseenter', e => { const t = getGridTooltipTarget(e.target); if (t) showGridTooltip(t, e); }, true);
+  document.addEventListener('mousemove', e => { if (!tooltip.classList.contains('is-visible')) return; const t = getGridTooltipTarget(e.target); if (t) positionTooltip(e); }, true);
+  document.addEventListener('mouseleave', e => { if (!getGridTooltipTarget(e.target)) return; hideTooltip(); }, true);
+
+  document.querySelectorAll('.donut-slice-group[data-tooltip-title], .bar-wrapper[data-tooltip-title], .effort-badge[data-tooltip-title], .prc-bar-segment[data-tooltip-title]').forEach(el => {
+    el.setAttribute('tabindex', el.getAttribute('tabindex') ?? '0');
+    el.addEventListener('mouseenter', e => showTooltip(el, e));
+    el.addEventListener('mousemove', e => { if (tooltip.classList.contains('is-visible')) positionTooltip(e); });
+    el.addEventListener('mouseleave', () => hideTooltip());
+    el.addEventListener('focus', () => { const r = el.getBoundingClientRect(); showTooltip(el, { clientX: r.left + r.width/2, clientY: r.top + r.height/2 }); });
+    el.addEventListener('blur', () => hideTooltip());
+  });
+
+  document.querySelectorAll('.help-tooltip-trigger[data-tooltip-title]').forEach(el => {
+    el.addEventListener('mouseenter', e => showTooltip(el, e));
+    el.addEventListener('mousemove', e => { if (tooltip.classList.contains('is-visible')) positionTooltip(e); });
+    el.addEventListener('mouseleave', () => hideTooltip());
+  });
+
+  document.querySelectorAll('.report-section').forEach(section => {
+    const button = section.querySelector('.section-toggle-button');
+    if (!button) return;
+    button.addEventListener('click', () => {
+      const isCollapsed = section.classList.toggle('is-collapsed');
+      button.setAttribute('aria-expanded', String(!isCollapsed));
+      button.setAttribute('aria-label', isCollapsed ? 'Expand section' : 'Collapse section');
+      button.setAttribute('title', isCollapsed ? 'Expand section' : 'Collapse section');
+    });
+  });
+});
+</script>
+<script>
+// Application Topology tab: single-select dropdown that shows one app at a time, with the
+// selected app's Mermaid service graph rendered lazily on demand. Mermaid is loaded from a CDN
+// only when the topology panel is present, mirroring the per-repo report.html pattern.
+(function () {
+  // This script lives in <head>, so the topology DOM (in <body>) does not exist yet. Install a
+  // queuing stub immediately; wire up the real logic once the document has been parsed.
+  let realRenderActive = null;
+  window.__renderActiveTopologyApp = function () {
+    if (realRenderActive) { realRenderActive(); return; }
+    window.__topologyRenderPending = true; // remember a request that arrived before init.
+  };
+
+  const init = () => {
+    const topoPanel = document.getElementById('tab-topology');
+    if (!topoPanel) { realRenderActive = function () {}; return; }
+
+    const topoSelect = document.getElementById('topology-app-select');
+    const sections = Array.from(topoPanel.querySelectorAll('.topology-app'));
+    const drained = new WeakSet();
+    let mermaidApi = null;
+    let mermaidLoading = null;
+
+    const runMermaid = (container) => {
+      if (!container || drained.has(container) || !mermaidApi) return;
+      const nodes = container.querySelectorAll('.mermaid:not([data-processed])');
+      if (!nodes.length) { drained.add(container); return; }
+      mermaidApi.run({ nodes: Array.from(nodes) })
+        .then(() => drained.add(container))
+        .catch((err) => {
+          nodes.forEach((n) => { n.classList.add('topology-diagram-fallback'); n.setAttribute('data-processed', 'error'); });
+          console.error('Topology diagram render failed', err);
+        });
+    };
+
+    const ensureMermaid = (container) => {
+      if (mermaidApi) { runMermaid(container); return; }
+      if (!mermaidLoading) {
+        mermaidLoading = import('https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs')
+          .then((mod) => {
+            mermaidApi = mod.default;
+            mermaidApi.initialize({ startOnLoad: false, theme: 'default', flowchart: { useMaxWidth: false, htmlLabels: true } });
+          })
+          .catch((err) => { console.error('Failed to load Mermaid', err); });
+      }
+      mermaidLoading.then(() => runMermaid(container));
+    };
+
+    const showApp = (sectionId) => {
+      let selected = null;
+      sections.forEach((s) => { const match = s.id === sectionId; s.classList.toggle('is-hidden', !match); if (match) selected = s; });
+      // Only render when the panel is visible; tab activation re-invokes this when shown.
+      if (selected && topoPanel.classList.contains('is-active')) ensureMermaid(selected);
+      return selected;
+    };
+
+    if (topoSelect) {
+      showApp(topoSelect.value);
+      topoSelect.addEventListener('change', () => showApp(topoSelect.value));
+    }
+
+    realRenderActive = () => { if (topoSelect) showApp(topoSelect.value); };
+
+    // Render now if the topology tab is already active on load, or if a render was requested
+    // (e.g. the user clicked the tab) before this initialization ran.
+    if (window.__topologyRenderPending || topoPanel.classList.contains('is-active')) {
+      realRenderActive();
+    }
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
+</head><body>
+<div class="report">
+  <div class="report-title">
+    <h1>Aggregated Assessment Report</h1>
+    <div class="date">Created on Sep 23, 2026</div>
+  </div>
+<nav class="report-tabs" role="tablist" aria-label="Aggregated report sections">
+  <button class="report-tab is-active" type="button" role="tab" id="tab-btn-overview" aria-controls="tab-overview" aria-selected="true" tabindex="0" data-target="tab-overview">Overview</button>
+  <button class="report-tab" type="button" role="tab" id="tab-btn-assessments" aria-controls="tab-assessments" aria-selected="false" tabindex="-1" data-target="tab-assessments">Business App Assessments</button>
+  <button class="report-tab" type="button" role="tab" id="tab-btn-recommendations" aria-controls="tab-recommendations" aria-selected="false" tabindex="-1" data-target="tab-recommendations">Recommendations</button>
+  <button class="report-tab" type="button" role="tab" id="tab-btn-cost-estimate" aria-controls="tab-cost-estimate" aria-selected="false" tabindex="-1" data-target="tab-cost-estimate">Cost Estimate</button>
+</nav>
+<div class="report-tab-panel is-active" id="tab-overview" role="tabpanel" aria-labelledby="tab-btn-overview">
+<div class="executive-summary-card">
+  <div class="executive-summary-header">
+    <div class="executive-summary-title">Executive insights</div>
+  </div>
+<p class="executive-summary-copy">The modernization work is concentrated: <strong>PhotoAlbum</strong> carries 100% of the estimated effort (22 SP out of 22 SP total).</p>
+<p class="executive-summary-copy">Across 1 component(s) in 1 business app(s), the assessment found 8 issues: 1 mandatory blockers, 4 potential risks, and 3 optional improvements.</p>
+<p class="executive-summary-copy">1 mandatory blocker(s) must be resolved before migration can proceed.</p>
+</div>
+<div class="overview-top-row">
+<div class="portfolio-readiness-card" aria-label="Issue summary">
+  <div class="prc-header">
+    <div class="prc-header-left">
+      <div class="prc-title">Issue summary</div>
+      <div class="prc-stat-line">
+        <span class="prc-stat-number">1 of 1</span>
+        <span class="prc-stat-text">scanned business apps need modernization</span>
+      </div>
+    </div>
+    <a class="card-action" href="#tab-assessments" data-report-tab-link="tab-assessments">View all assessment results</a>
+  </div>
+  <div class="prc-body">
+    <div class="prc-app-row" aria-label="PhotoAlbum: 8 issues, Medium effort">
+      <span class="prc-app-name">PhotoAlbum</span>
+      <div class="prc-bar-track">
+        <div class="prc-bar-segment mandatory" style="width:12.5%" tabindex="0" data-tooltip-title="Mandatory — PhotoAlbum" data-tooltip-line1="1 of 8 issues" data-tooltip-line2="Must fix before deployment"></div>
+        <div class="prc-bar-segment potential" style="width:50.0%" tabindex="0" data-tooltip-title="Potential — PhotoAlbum" data-tooltip-line1="4 of 8 issues" data-tooltip-line2="Recommended to address"></div>
+        <div class="prc-bar-segment optional" style="width:37.5%" tabindex="0" data-tooltip-title="Optional — PhotoAlbum" data-tooltip-line1="3 of 8 issues" data-tooltip-line2="Nice-to-have improvements"></div>
+      </div>
+      <span class="prc-count">8 issues</span>
+      <div class="prc-effort-cell"><span class="effort-badge">Medium</span></div>
+    </div>
+  </div>
+  <div class="prc-footer">
+    <div class="prc-footer-legend" aria-label="Issue criticality legend">
+      <div class="prc-footer-legend-item"><div class="legend-dot legend-dot-pink"></div>Mandatory (1)</div>
+      <div class="prc-footer-legend-item"><div class="legend-dot legend-dot-blue"></div>Potential (4)</div>
+      <div class="prc-footer-legend-item"><div class="legend-dot legend-dot-gray"></div>Optional (3)</div>
+    </div>
+  </div>
+</div>
+</div>
+<div class="chart-row overview-chart-row">
+<div class="chart-card effort-distribution-card">
+<div class="card-header"><div class="card-header-text">
+  <span class="title">Effort distribution</span>
+  <span class="meta">Relative modernization effort across 1 business apps</span>
+</div>
+<a class="card-action" href="#tab-assessments" data-report-tab-link="tab-assessments">View more</a>
+</div>
+<div class="chart-body chart-body-tech">
+<div class="bar-chart-container effort-chart" aria-label="Effort distribution by business app"><div class="bar-chart-layout">
+<div class="bar-chart-y-label">Effort size</div>
+<div class="bar-chart-y-axis"><span>Extra large</span><span>Large</span><span>Medium</span><span>Small</span></div>
+<div class="bar-chart-grid"><div class="bar-chart-bars">
+<div class="bar-wrapper" style="--bar-height: 36.0%; --bar-color: var(--vizOrchidShade20);" data-tooltip-title="PhotoAlbum" data-tooltip-line1="Effort: Medium" data-tooltip-line2="Issues: 8 total — 1 mandatory, 4 potential, 3 optional" tabindex="0">
+  <span class="bar-value">Medium</span><div class="bar"></div>
+</div>
+</div>
+<div class="bar-x-labels">
+<span>PhotoAlbum</span>
+</div>
+<div class="bar-x-axis-label">Business Apps</div>
+</div></div></div>
+</div></div>
+<div class="chart-card">
+<div class="card-header"><div class="card-header-text">
+  <span class="title">Technologies</span>
+  <span class="meta">Detected languages across the portfolio</span>
+</div>
+<a class="card-action" href="#tab-assessments" data-report-tab-link="tab-assessments">Tech details</a>
+</div>
+<div class="chart-body chart-body-tech technology-chart">
+<div class="bar-chart-container"><div class="bar-chart-layout">
+<div class="bar-chart-y-label">Value</div>
+<div class="bar-chart-y-axis">
+<span>1</span>
+<span>0</span>
+</div>
+<div class="bar-chart-grid"><div class="bar-chart-bars">
+<div class="bar-wrapper" style="--bar-height:100.0%; --bar-color: var(--vizGreenShade20);" data-tooltip-title="C#" data-tooltip-line1="Value: 1" tabindex="0">
+  <span class="bar-value">1</span><div class="bar"></div>
+</div>
+</div>
+<div class="bar-x-labels">
+<span>C#</span>
+</div>
+<div class="bar-x-axis-label">Languages</div>
+</div></div></div>
+</div>
+</div>
+</div>
+</div>
+<div class="report-tab-panel" id="tab-recommendations" role="tabpanel" aria-labelledby="tab-btn-recommendations">
+<div class="executive-summary-card">
+  <div class="executive-summary-header">
+    <div class="executive-summary-title">Recommendation insights</div>
+  </div>
+<p class="executive-summary-copy">5 Azure service recommendation(s) identified to support the target architecture.</p>
+<p class="executive-summary-copy">Migration is sequenced into waves ordered by ascending effort to deliver early wins and build team confidence.</p>
+</div>
+<div class="data-table-section">
+<div class="data-table-header">
+  <h3 class="subsection-title">Suggested modernization sequence</h3>
+</div>
+<p class="subsection-supporting-copy">Reference sequence for creating the modernization plan. Use it with the full assessment report before deciding execution work.</p>
+<div class="modernization-plan" aria-label="Suggested modernization sequence by wave">
+<article class="modernization-wave">
+  <div class="wave-marker" aria-hidden="true"></div>
+  <div class="wave-body">
+    <div class="wave-title-row">
+      <div class="wave-title">Wave 1 — Quick wins</div>
+    </div>
+    <div class="wave-meta"><span>0 business apps</span><span>·</span><span>0 components</span><span>·</span><span>0 SP estimated effort</span></div>
+    <p class="wave-copy">Use the smallest in-scope services to define deployment and validation patterns before larger workstreams.</p>
+    <div class="wave-app-list">—</div>
+  </div>
+</article>
+<article class="modernization-wave">
+  <div class="wave-marker" aria-hidden="true"></div>
+  <div class="wave-body">
+    <div class="wave-title-row">
+      <div class="wave-title">Wave 2 — Core modernization</div>
+    </div>
+    <div class="wave-meta"><span>1 business app</span><span>·</span><span>1 component</span><span>·</span><span>22 SP estimated effort</span></div>
+    <p class="wave-copy">Include integration refactoring as a contained modernization workstream.</p>
+    <div class="wave-app-list"><span class="wave-app-pill">PhotoAlbum</span></div>
+  </div>
+</article>
+<article class="modernization-wave">
+  <div class="wave-marker" aria-hidden="true"></div>
+  <div class="wave-body">
+    <div class="wave-title-row">
+      <div class="wave-title">Wave 3 — Complex upgrades</div>
+    </div>
+    <div class="wave-meta"><span>0 business apps</span><span>·</span><span>0 components</span><span>·</span><span>0 SP estimated effort</span></div>
+    <p class="wave-copy">Plan after shared patterns are established; this wave carries the largest upgrade, validation, and packaging scope.</p>
+    <div class="wave-app-list">—</div>
+  </div>
+</article>
+</div>
+</div>
+<div class="data-table-section">
+<div class="data-table-header"><h3 class="subsection-title">Migration Strategy Recommendation</h3><button class="table-expand-button" type="button"><span class="sr-only">Expand table</span><svg class="icon-expand" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M3.5 3a.5.5 0 0 0-.5.5v4a.5.5 0 0 0 1 0V4.7l3.15 3.15a.5.5 0 1 0 .7-.7L4.71 4H7.5a.5.5 0 0 0 0-1h-4Zm0 14a.5.5 0 0 1-.5-.5v-4a.5.5 0 0 1 1 0v2.8l3.15-3.15a.5.5 0 0 1 .7.7L4.71 16H7.5a.5.5 0 0 1 0 1h-4ZM17 3.5a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 0 0 1h2.8l-3.15 3.15a.5.5 0 0 0 .7.7L16 4.71V7.5a.5.5 0 0 0 1 0v-4ZM16.5 17a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 0-1 0v2.8l-3.15-3.15a.5.5 0 0 0-.7.7L15.29 16H12.5a.5.5 0 0 0 0 1h4Z"/></svg><svg class="icon-collapse" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M5.15 5.15a.5.5 0 0 1 .7 0L10 9.29l4.15-4.14a.5.5 0 0 1 .7.7L10.71 10l4.14 4.15a.5.5 0 0 1-.7.7L10 10.71l-4.15 4.14a.5.5 0 0 1-.7-.7L9.29 10 5.15 5.85a.5.5 0 0 1 0-.7Z"/></svg></button></div>
+<div class="data-grid-shell"><table class="data-grid recommendation-strategy-table"><colgroup><col><col><col><col><col><col><col><col><col></colgroup>
+<thead><tr><th>Business App</th><th>Repository</th><th>Component</th><th>Strategy</th><th colspan="4">Rationale</th><th>Effort</th></tr></thead>
+<tbody>
+<tr><td>PhotoAlbum</td><td>PhotoAlbum</td><td>PhotoAlbum</td><td>Replatform</td><td colspan="4">Framework upgrade needed; replatform to Azure with targeted changes.</td><td><span class="effort-badge effort-badge-pill">Medium</span></td></tr>
+</tbody></table></div></div>
+<div class="data-table-section">
+<div class="data-table-header"><h3 class="subsection-title">Recommended Azure Services</h3><button class="table-expand-button" type="button"><span class="sr-only">Expand table</span><svg class="icon-expand" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M3.5 3a.5.5 0 0 0-.5.5v4a.5.5 0 0 0 1 0V4.7l3.15 3.15a.5.5 0 1 0 .7-.7L4.71 4H7.5a.5.5 0 0 0 0-1h-4Zm0 14a.5.5 0 0 1-.5-.5v-4a.5.5 0 0 1 1 0v2.8l3.15-3.15a.5.5 0 0 1 .7.7L4.71 16H7.5a.5.5 0 0 1 0 1h-4ZM17 3.5a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 0 0 1h2.8l-3.15 3.15a.5.5 0 0 0 .7.7L16 4.71V7.5a.5.5 0 0 0 1 0v-4ZM16.5 17a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 0-1 0v2.8l-3.15-3.15a.5.5 0 0 0-.7.7L15.29 16H12.5a.5.5 0 0 0 0 1h4Z"/></svg><svg class="icon-collapse" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M5.15 5.15a.5.5 0 0 1 .7 0L10 9.29l4.15-4.14a.5.5 0 0 1 .7.7L10.71 10l4.14 4.15a.5.5 0 0 1-.7.7L10 10.71l-4.15 4.14a.5.5 0 0 1-.7-.7L9.29 10 5.15 5.85a.5.5 0 0 1 0-.7Z"/></svg></button></div>
+<div class="data-grid-shell"><table class="data-grid recommendation-services-table"><colgroup><col><col><col><col><col><col><col><col><col></colgroup>
+<thead><tr><th>Target Service</th><th>Business App</th><th>Repository</th><th>Component</th><th colspan="2">Language</th><th>Framework</th><th colspan="2">Rationale</th></tr></thead>
+<tbody>
+<tr><td>Azure Blob Storage</td><td>PhotoAlbum</td><td>PhotoAlbum</td><td>PhotoAlbum</td><td colspan="2">C#</td><td>net9.0</td><td colspan="2">Azure Blob Storage replaces local file system dependencies with scalable, geo-redundant cloud storage accessible from any Azure service.</td></tr>
+<tr><td>Azure Key Vault with Managed Identity</td><td>PhotoAlbum</td><td>PhotoAlbum</td><td>PhotoAlbum</td><td colspan="2">C#</td><td>net9.0</td><td colspan="2">Storing credentials in Azure Key Vault with managed identity eliminates plaintext secrets from code and configuration, improving security posture.</td></tr>
+<tr><td>Azure SQL Database</td><td>PhotoAlbum</td><td>PhotoAlbum</td><td>PhotoAlbum</td><td colspan="2">C#</td><td>net9.0</td><td colspan="2">Azure SQL Database provides a fully managed SQL Server experience with built-in high availability, automatic backups, and managed identity authentication.</td></tr>
+<tr><td>Microsoft Entra ID</td><td>PhotoAlbum</td><td>PhotoAlbum</td><td>PhotoAlbum</td><td colspan="2">C#</td><td>net9.0</td><td colspan="2">Microsoft Entra ID provides cloud-native identity and access management, replacing on-premises Windows AD with modern authentication protocols.</td></tr>
+<tr><td>App Service (Linux)</td><td>PhotoAlbum</td><td>PhotoAlbum</td><td>PhotoAlbum</td><td colspan="2">C#</td><td>net9.0</td><td colspan="2">Target compute platform for application hosting.</td></tr>
+</tbody></table></div></div>
+<div class="data-table-section">
+<div class="data-table-header"><h3 class="subsection-title">Recommended Upgrade Paths</h3><button class="table-expand-button" type="button"><span class="sr-only">Expand table</span><svg class="icon-expand" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M3.5 3a.5.5 0 0 0-.5.5v4a.5.5 0 0 0 1 0V4.7l3.15 3.15a.5.5 0 1 0 .7-.7L4.71 4H7.5a.5.5 0 0 0 0-1h-4Zm0 14a.5.5 0 0 1-.5-.5v-4a.5.5 0 0 1 1 0v2.8l3.15-3.15a.5.5 0 0 1 .7.7L4.71 16H7.5a.5.5 0 0 1 0 1h-4ZM17 3.5a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 0 0 1h2.8l-3.15 3.15a.5.5 0 0 0 .7.7L16 4.71V7.5a.5.5 0 0 0 1 0v-4ZM16.5 17a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 0-1 0v2.8l-3.15-3.15a.5.5 0 0 0-.7.7L15.29 16H12.5a.5.5 0 0 0 0 1h4Z"/></svg><svg class="icon-collapse" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M5.15 5.15a.5.5 0 0 1 .7 0L10 9.29l4.15-4.14a.5.5 0 0 1 .7.7L10.71 10l4.14 4.15a.5.5 0 0 1-.7.7L10 10.71l-4.15 4.14a.5.5 0 0 1-.7-.7L9.29 10 5.15 5.85a.5.5 0 0 1 0-.7Z"/></svg></button></div>
+<div class="data-grid-shell"><table class="data-grid recommendation-upgrade-table"><colgroup><col><col><col><col><col><col><col><col></colgroup>
+<thead><tr><th>Business App</th><th>Repository</th><th>Component</th><th>Current</th><th colspan="2">Target</th><th colspan="2">Upgrade Path</th></tr></thead>
+<tbody>
+<tr><td>PhotoAlbum</td><td>PhotoAlbum</td><td>PhotoAlbum</td><td>.NET 9.0</td><td colspan="2">Upgrade to .NET 10</td><td colspan="2">.NET 10 is the latest LTS version supported by GitHub Copilot Modernization, enabling automated upgrades with minimal manual effort.</td></tr>
+</tbody></table></div></div>
+</div>
+<div class="report-tab-panel" id="tab-assessments" role="tabpanel" aria-labelledby="tab-btn-assessments">
+<div class="executive-summary-card">
+  <div class="executive-summary-header">
+    <div class="executive-summary-title">Assessment insights</div>
+  </div>
+<p class="executive-summary-copy">Detailed per-business-app assessment showing 1 component(s) across 1 business app(s).</p>
+<p class="executive-summary-copy">1 component(s) have mandatory blockers that must be resolved before migration.</p>
+</div>
+<div class="data-table-section">
+<div class="data-table-header"><h3 class="subsection-title">PhotoAlbum (22 SP)</h3><button class="table-expand-button" type="button"><span class="sr-only">Expand table</span><svg class="icon-expand" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M3.5 3a.5.5 0 0 0-.5.5v4a.5.5 0 0 0 1 0V4.7l3.15 3.15a.5.5 0 1 0 .7-.7L4.71 4H7.5a.5.5 0 0 0 0-1h-4Zm0 14a.5.5 0 0 1-.5-.5v-4a.5.5 0 0 1 1 0v2.8l3.15-3.15a.5.5 0 0 1 .7.7L4.71 16H7.5a.5.5 0 0 1 0 1h-4ZM17 3.5a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 0 0 1h2.8l-3.15 3.15a.5.5 0 0 0 .7.7L16 4.71V7.5a.5.5 0 0 0 1 0v-4ZM16.5 17a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 0-1 0v2.8l-3.15-3.15a.5.5 0 0 0-.7.7L15.29 16H12.5a.5.5 0 0 0 0 1h4Z"/></svg><svg class="icon-collapse" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M5.15 5.15a.5.5 0 0 1 .7 0L10 9.29l4.15-4.14a.5.5 0 0 1 .7.7L10.71 10l4.14 4.15a.5.5 0 0 1-.7.7L10 10.71l-4.15 4.14a.5.5 0 0 1-.7-.7L9.29 10 5.15 5.85a.5.5 0 0 1 0-.7Z"/></svg></button></div>
+<div class="data-grid-shell no-horizontal-scroll-shell"><table class="data-grid no-horizontal-scroll"><thead><tr>
+<th><span class="header-label">Repository</span></th><th><span class="header-label">Component</span></th><th><span class="header-label">Runtime / Framework</span></th><th><span class="header-label">Target</span></th><th><span class="header-label">Upgrade Path</span></th><th><span class="header-label">Modernization scope</span></th><th><span class="header-label">Issues</span></th><th><span class="header-label">Effort</span></th>
+</tr></thead><tbody>
+<tr>
+  <td>PhotoAlbum</td>
+  <td><a class="app-link" href="repos/PhotoAlbum/report.html">PhotoAlbum</a></td>
+  <td>.NET 9.0</td>
+  <td>App Service (Linux)</td>
+  <td>Upgrade to .NET 10</td>
+  <td>Replatform</td>
+  <td class="issues-cell"><div class="issues-stack" aria-label="Mandatory 1 issues, Potential 4 issues, Optional 3 issues">
+    <div class="issues-stack-item"><span class="legend-dot legend-dot-pink"></span><span class="issues-stack-label">Mandatory <span class="issues-stack-count">(1)</span></span></div>
+    <div class="issues-stack-item"><span class="legend-dot legend-dot-blue"></span><span class="issues-stack-label">Potential <span class="issues-stack-count">(4)</span></span></div>
+    <div class="issues-stack-item"><span class="legend-dot legend-dot-gray"></span><span class="issues-stack-label">Optional <span class="issues-stack-count">(3)</span></span></div>
+  </div></td>
+  <td><span class="effort-badge effort-badge-pill help-tooltip-trigger" tabindex="0" data-tooltip-title="Medium effort for PhotoAlbum" data-tooltip-line1="Target: App Service (Linux). Upgrade: Upgrade to .NET 10." data-tooltip-line2="1 mandatory blocker(s).">Medium</span></td>
+</tr>
+</tbody></table></div></div>
+</div>
+<div class="report-tab-panel" id="tab-cost-estimate">
+<div class="executive-summary-card">
+  <div class="executive-summary-header">
+    <div class="executive-summary-title">Architecture &amp; cost insights</div>
+  </div>
+  <div class="architecture-cost-highlight">
+    <div class="architecture-cost-total">
+      <span class="cost-total-label">Portfolio monthly estimate</span>
+      <span class="architecture-cost-value">~$43<span class="architecture-cost-period">/month</span></span>
+    </div>
+  </div>
+  <div class="cost-disclaimer">
+    <svg class="cost-disclaimer-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M8.68 2.79a1.5 1.5 0 0 1 2.64 0l6.5 12A1.5 1.5 0 0 1 16.5 17h-13a1.5 1.5 0 0 1-1.32-2.21l6.5-12ZM10 7.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 1 0V8a.5.5 0 0 0-.5-.5Zm0 7.25a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z"/></svg>
+    <p class="cost-disclaimer-text">These cost estimates are directional and based on Azure retail pricing using pre-selected SKUs aligned to a baseline dev/test environment. Consumption-based services use assumed default usage volumes. Actual production costs will vary and are likely to change based on application-specific sizing, performance requirements, real-world usage patterns, selected region, reserved instance or savings plan commitments, and enterprise agreement discounts.</p>
+  </div>
+  <details class="cost-methodology">
+    <summary class="cost-methodology-toggle">How are these estimates calculated?</summary>
+    <div class="cost-methodology-content">
+      <p>Each recommended Azure service is mapped to a specific SKU suitable for a <strong>dev/test baseline</strong>. Prices are retrieved from the <a href="https://learn.microsoft.com/en-us/rest/api/cost-management/retail-prices/azure-retail-prices" target="_blank" rel="noopener">Azure Retail Prices API</a> for the East US region.</p>
+      <p><strong>Normalization rules:</strong></p>
+      <ul>
+        <li><em>Hourly services</em> (e.g. App Service B1, VMs) — unit price × 730 hours/month</li>
+        <li><em>Daily services</em> (e.g. SQL Database DTU) — unit price × 30 days/month</li>
+        <li><em>Consumption services</em> (e.g. Container Apps, Functions) — fixed assumed monthly usage volume</li>
+        <li><em>Monthly services</em> (e.g. Service Bus Standard) — listed price as-is</li>
+      </ul>
+      <p>No reserved instance, savings plan, or enterprise agreement discounts are applied. The lowest non-zero retail price matching the SKU filter is selected when multiple meter options exist.</p>
+    </div>
+  </details>
+</div>
+<div class="data-table-section">
+<div class="data-table-header"><h3 class="subsection-title">PhotoAlbum cost breakdown (~$43/month, 22 SP)</h3><button class="table-expand-button" type="button"><span class="sr-only">Expand table</span><svg class="icon-expand" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M3.5 3a.5.5 0 0 0-.5.5v4a.5.5 0 0 0 1 0V4.7l3.15 3.15a.5.5 0 1 0 .7-.7L4.71 4H7.5a.5.5 0 0 0 0-1h-4Zm0 14a.5.5 0 0 1-.5-.5v-4a.5.5 0 0 1 1 0v2.8l3.15-3.15a.5.5 0 0 1 .7.7L4.71 16H7.5a.5.5 0 0 1 0 1h-4ZM17 3.5a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 0 0 1h2.8l-3.15 3.15a.5.5 0 0 0 .7.7L16 4.71V7.5a.5.5 0 0 0 1 0v-4ZM16.5 17a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 0-1 0v2.8l-3.15-3.15a.5.5 0 0 0-.7.7L15.29 16H12.5a.5.5 0 0 0 0 1h4Z"/></svg><svg class="icon-collapse" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M5.15 5.15a.5.5 0 0 1 .7 0L10 9.29l4.15-4.14a.5.5 0 0 1 .7.7L10.71 10l4.14 4.15a.5.5 0 0 1-.7.7L10 10.71l-4.15 4.14a.5.5 0 0 1-.7-.7L9.29 10 5.15 5.85a.5.5 0 0 1 0-.7Z"/></svg></button></div>
+<div class="data-grid-shell"><table class="data-grid">
+<thead><tr><th>Service</th><th>SKU</th><th>Monthly Cost</th><th>Pricing Model</th></tr></thead>
+<tbody>
+<tr><td>Azure Blob Storage</td><td>Hot LRS</td><td>~$5</td><td>Per GB/month</td></tr>
+<tr><td>Azure Key Vault with Managed Identity</td><td>Standard</td><td>~$5</td><td>Per transaction</td></tr>
+<tr><td>Azure SQL Database</td><td>S0 (10 DTU)</td><td>$15</td><td>DTU-based</td></tr>
+<tr><td>Microsoft Entra ID</td><td>P1</td><td>~$6</td><td>Per user/month</td></tr>
+<tr><td>App Service (Linux)</td><td>B1</td><td>$12</td><td>Per instance/hour</td></tr>
+<tr class="cost-total-row"><td class="cost-total-label-cell">Total</td><td></td><td class="cost-total-price-cell">~$43</td><td></td></tr>
+</tbody></table></div></div>
+</div>
+</div></body></html>

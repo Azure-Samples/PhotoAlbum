@@ -1,0 +1,1 @@
+- ✅ 001-upgrade-dotnet-latest-lts: Upgrade PhotoAlbum to the current .NET LTS runtime and compatible package set
