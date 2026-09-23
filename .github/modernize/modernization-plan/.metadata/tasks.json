@@ -153,7 +153,8 @@
       "targetAzureService": "azurecontainerapp",
       "resourceStatus": "Existing infrastructure already defined in repository (infra/main.bicep, azure.yaml, Dockerfile)",
       "deploymentTool": "bicep",
-      "status": "started"
+      "status": "skipped",
+      "taskSummary": "Deployment skipped: no Azure CLI authentication or resource group information (.env/env.md/infra-config.md) available in this session. User chose to skip rather than provide credentials. All prior modernization tasks (001-006) are complete and committed; existing infra/main.bicep, azure.yaml, Dockerfile, and deploy-to-azure.sh remain ready for manual deployment once credentials/resource group are supplied."
     }
   ],
   "metadata": {
