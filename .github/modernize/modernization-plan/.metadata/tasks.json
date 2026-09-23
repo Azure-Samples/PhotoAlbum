@@ -38,7 +38,12 @@
         "passBuild": "true",
         "passUnitTests": "true"
       },
-      "status": "started"
+      "status": "success",
+      "successCriteriaStatus": {
+        "passBuild": "true",
+        "passUnitTests": "true"
+      },
+      "taskSummary": "Removed LocalPhotoBlobStorage fallback and sync File I/O; storage now exclusively uses AzurePhotoBlobStorage (DefaultAzureCredential). PhotoService/Program.cs fail fast if Blob Storage not configured. Removed Storage:FallbackRootPath setting. Added InMemoryPhotoBlobStorage test double and new tests. Build succeeded, 9/9 tests passed. Committed as a1b9a78."
     },
     {
       "type": "transform",
@@ -58,7 +63,8 @@
       "successCriteria": {
         "passBuild": "true",
         "passUnitTests": "true"
-      }
+      },
+      "status": "started"
     },
     {
       "type": "transform",
