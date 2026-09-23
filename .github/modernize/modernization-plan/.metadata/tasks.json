@@ -64,7 +64,12 @@
         "passBuild": "true",
         "passUnitTests": "true"
       },
-      "status": "started"
+      "status": "success",
+      "successCriteriaStatus": {
+        "passBuild": "true",
+        "passUnitTests": "true"
+      },
+      "taskSummary": "Removed SDK-based Azure App Configuration wiring (AddAzureAppConfiguration) from Program.cs/csproj per the deployment-only skill; app now resolves non-secret settings via IConfiguration + environment variables (Key Vault wiring for secrets untouched). Updated .azure/configuration-migration.json to add Storage:* / StorageAccountName and drop stale FileUpload:UploadPath. Added AppConfigurationTests.cs covering default fallback, env-var override precedence, and indexed array binding. Build succeeded, 12/12 tests passed."
     },
     {
       "type": "transform",

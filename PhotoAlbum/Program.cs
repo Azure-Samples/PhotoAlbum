@@ -1,31 +1,26 @@
 using Azure.Identity;
 using Azure.Storage.Blobs;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.Extensions.Configuration.AzureAppConfiguration;
 using Microsoft.EntityFrameworkCore;
 using PhotoAlbum.Data;
 using PhotoAlbum.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var appConfigurationEndpoint = Environment.GetEnvironmentVariable("AZURE_APP_CONFIGURATION_ENDPOINT");
 var credential = new DefaultAzureCredential();
 
-if (!string.IsNullOrWhiteSpace(appConfigurationEndpoint))
-{
-    builder.Configuration.AddAzureAppConfiguration(options =>
-    {
-        options.Connect(new Uri(appConfigurationEndpoint), credential);
-    });
-}
+// Non-secret application settings (Storage:*, FileUpload:*, Admin:Username, etc.) are
+// centrally managed in Azure App Configuration and injected at deployment time as
+// environment variables (see .azure/configuration-migration.json). WebApplicationBuilder
+// already registers the environment-variable configuration source by default, and
+// environment variables take precedence over appsettings.json, so no Azure App
+// Configuration SDK dependency is required in the application itself.
 
 var keyVaultUri = Environment.GetEnvironmentVariable("AZURE_KEY_VAULT_URI");
 if (!string.IsNullOrWhiteSpace(keyVaultUri))
 {
     builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUri), credential);
 }
-
-builder.Services.AddAzureAppConfiguration();
 
 var configuredServiceUri = builder.Configuration["Storage:ServiceUri"];
 var configuredAccountName = builder.Configuration["Storage:AccountName"] ?? builder.Configuration["StorageAccountName"];
