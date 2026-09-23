@@ -50,8 +50,8 @@ dotnet ef database update --project PhotoAlbum/PhotoAlbum.csproj
 1. **PhotoService (PhotoAlbum/Services/PhotoService.cs)** - Service layer handling photo operations:
    - File upload with validation (size, MIME type)
    - Image dimension extraction via ImageSharp
-   - File storage in `wwwroot/uploads/` with GUID-based filenames
-   - Database persistence with transaction rollback on failure
+   - Blob-backed storage via Azure Blob Storage (`DefaultAzureCredential`)
+   - Database persistence with rollback cleanup on failure
    - Photo retrieval and deletion
 
 2. **PhotoAlbumContext (PhotoAlbum/Data/PhotoAlbumContext.cs)** - EF Core DbContext:
@@ -72,10 +72,11 @@ dotnet ef database update --project PhotoAlbum/PhotoAlbum.csproj
 - `ConnectionStrings:DefaultConnection` - SQL Server LocalDB
 - `FileUpload:MaxFileSizeBytes` - 10MB limit
 - `FileUpload:AllowedMimeTypes` - JPEG, PNG, GIF, WebP
-- `FileUpload:UploadPath` - `wwwroot/uploads`
+- `Storage:ServiceUri` / `Storage:AccountName` - Azure Blob Storage endpoint
+- `Storage:ContainerName` - Blob container for photos
 
 **Startup (Program.cs):**
-- Creates uploads directory on startup
+- Registers a singleton `BlobServiceClient` with `DefaultAzureCredential`
 - Auto-applies EF migrations in development (skips in test environment)
 - Configures form options for 10MB file uploads
 - Registers `IPhotoService` with scoped lifetime

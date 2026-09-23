@@ -78,10 +78,14 @@ Configuration is stored in `appsettings.json`:
   "ConnectionStrings": {
     "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=PhotoAlbumDb;..."
   },
-  "PhotoUpload": {
+  "Storage": {
+    "AccountName": "your-storage-account-name",
+    "ContainerName": "photos",
+    "ServiceUri": "https://your-storage-account-name.blob.core.windows.net"
+  },
+  "FileUpload": {
     "MaxFileSizeBytes": 10485760,
-    "AllowedMimeTypes": ["image/jpeg", "image/png", "image/gif", "image/webp"],
-    "UploadPath": "wwwroot/uploads"
+    "AllowedMimeTypes": ["image/jpeg", "image/png", "image/gif", "image/webp"]
   }
 }
 ```
@@ -90,7 +94,8 @@ Configuration is stored in `appsettings.json`:
 
 - **MaxFileSizeBytes**: Maximum file size in bytes (default: 10MB)
 - **AllowedMimeTypes**: Array of accepted MIME types
-- **UploadPath**: Directory for storing uploaded files (relative to project root)
+- **Storage:ContainerName**: Blob container hosting uploaded photos
+- **Storage:ServiceUri**: Azure Blob Storage endpoint used by `DefaultAzureCredential`
 
 ## Running Tests
 
@@ -199,9 +204,9 @@ If you encounter database connection errors:
 
 3. Update the connection string in `appsettings.json` if using a different instance.
 
-### Upload Directory Permissions
+### Storage Access
 
-Ensure the application has write permissions to the upload directory (`wwwroot/uploads`). The directory is created automatically on first upload if it doesn't exist.
+Ensure the application identity has `Storage Blob Data Contributor` access to the configured Azure Blob container. The container is created automatically on first upload when the configured account and identity are valid.
 
 ## License
 

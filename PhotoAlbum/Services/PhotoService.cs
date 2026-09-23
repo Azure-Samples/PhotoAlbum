@@ -7,14 +7,16 @@ using SixLabors.ImageSharp.Formats;
 namespace PhotoAlbum.Services;
 
 /// <summary>
-/// Service for photo operations including upload, retrieval, and deletion
+/// Service for photo operations including upload, retrieval, and deletion.
+/// The storage backend is configuration-driven and defaults to a local fallback
+/// when Azure Blob Storage is not yet configured.
 /// </summary>
 public class PhotoService : IPhotoService
 {
     private readonly PhotoAlbumContext _context;
     private readonly IConfiguration _configuration;
     private readonly ILogger<PhotoService> _logger;
-    private readonly string _uploadPath;
+    private readonly IPhotoBlobStorage _photoBlobStorage;
     private readonly long _maxFileSizeBytes;
     private readonly string[] _allowedMimeTypes;
 
@@ -25,17 +27,49 @@ public class PhotoService : IPhotoService
     public PhotoService(
         PhotoAlbumContext context,
         IConfiguration configuration,
-        ILogger<PhotoService> logger)
+        ILogger<PhotoService> logger,
+        IPhotoBlobStorage? photoBlobStorage = null,
+        ILoggerFactory? loggerFactory = null)
     {
         _context = context;
         _configuration = configuration;
         _logger = logger;
 
-        _uploadPath = _configuration["FileUpload:UploadPath"]
-            ?? throw new InvalidOperationException("FileUpload:UploadPath is not configured.");
+        _photoBlobStorage = photoBlobStorage ?? CreateFallbackStorage(configuration, logger, loggerFactory ?? new LoggerFactory());
         _maxFileSizeBytes = _configuration.GetValue<long>("FileUpload:MaxFileSizeBytes", 10485760);
         _allowedMimeTypes = _configuration.GetSection("FileUpload:AllowedMimeTypes").Get<string[]>()
             ?? new[] { "image/jpeg", "image/png", "image/gif", "image/webp" };
+    }
+
+    private static IPhotoBlobStorage CreateFallbackStorage(
+        IConfiguration configuration,
+        ILogger<PhotoService> logger,
+        ILoggerFactory loggerFactory)
+    {
+        var serviceUri = configuration["Storage:ServiceUri"] ?? string.Empty;
+        var accountName = configuration["Storage:AccountName"] ?? configuration["StorageAccountName"] ?? string.Empty;
+        var containerName = configuration["Storage:ContainerName"] ?? string.Empty;
+
+        if (!string.IsNullOrWhiteSpace(serviceUri) && !serviceUri.Contains("{", StringComparison.Ordinal) &&
+            !string.IsNullOrWhiteSpace(containerName))
+        {
+            var blobServiceClient = new Azure.Storage.Blobs.BlobServiceClient(
+                new Uri(serviceUri),
+                new Azure.Identity.DefaultAzureCredential());
+            return new AzurePhotoBlobStorage(blobServiceClient, configuration, loggerFactory.CreateLogger<AzurePhotoBlobStorage>());
+        }
+
+        if (!string.IsNullOrWhiteSpace(accountName) && !accountName.Contains("{", StringComparison.Ordinal) &&
+            !string.IsNullOrWhiteSpace(containerName))
+        {
+            var blobServiceClient = new Azure.Storage.Blobs.BlobServiceClient(
+                new Uri($"https://{accountName}.blob.core.windows.net"),
+                new Azure.Identity.DefaultAzureCredential());
+            return new AzurePhotoBlobStorage(blobServiceClient, configuration, loggerFactory.CreateLogger<AzurePhotoBlobStorage>());
+        }
+
+        logger.LogInformation("Azure Blob Storage configuration not detected; using local fallback storage for this environment.");
+        return new LocalPhotoBlobStorage(configuration);
     }
 
     /// <summary>
@@ -73,7 +107,7 @@ public class PhotoService : IPhotoService
     }
 
     /// <summary>
-    /// Upload a photo file
+    /// Upload a photo file.
     /// </summary>
     public async Task<UploadResult> UploadPhotoAsync(IFormFile file)
     {
@@ -84,10 +118,6 @@ public class PhotoService : IPhotoService
 
         try
         {
-            // NOTE: the client-supplied Content-Type is NOT trusted for validation.
-            // The real image format is detected from the file content below (CWE-434).
-
-            // Validate file size
             if (file.Length > _maxFileSizeBytes)
             {
                 result.Success = false;
@@ -97,7 +127,6 @@ public class PhotoService : IPhotoService
                 return result;
             }
 
-            // Validate file length
             if (file.Length <= 0)
             {
                 result.Success = false;
@@ -105,10 +134,6 @@ public class PhotoService : IPhotoService
                 return result;
             }
 
-            // Verify the upload is a real raster image and determine its true
-            // format from the content (never from the client Content-Type or the
-            // user-supplied file name). Fail closed if it cannot be decoded
-            // (CWE-434 unrestricted upload / CWE-79 stored XSS via .html/.svg).
             int? width = null;
             int? height = null;
             IImageFormat imageFormat;
@@ -129,8 +154,6 @@ public class PhotoService : IPhotoService
                 return result;
             }
 
-            // Allow only known-safe raster formats, keyed off the detected format's
-            // canonical extension (not the attacker-controlled file name).
             var safeExtension = imageFormat.FileExtensions.FirstOrDefault();
             if (safeExtension == null || !_allowedImageExtensions.Contains(safeExtension))
             {
@@ -141,37 +164,25 @@ public class PhotoService : IPhotoService
                 return result;
             }
 
-            // Build a safe stored file name using the detected format's extension.
-            var storedFileName = $"{Guid.NewGuid()}.{safeExtension}";
-            var relativePath = $"/uploads/{storedFileName}";
-
-            // Ensure upload directory exists
-            if (!Directory.Exists(_uploadPath))
-            {
-                Directory.CreateDirectory(_uploadPath);
-            }
-
-            var fullPath = Path.Combine(_uploadPath, storedFileName);
-
-            // Save file to disk
+            string storedBlobName;
+            string relativePath;
             try
             {
-                using var stream = new FileStream(fullPath, FileMode.Create);
-                await file.CopyToAsync(stream);
+                storedBlobName = await _photoBlobStorage.UploadAsync(file, imageFormat.DefaultMimeType, safeExtension, width, height, file.FileName);
+                relativePath = $"/{storedBlobName.TrimStart('/')}";
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error saving file {FileName} to {FullPath}", file.FileName, fullPath);
+                _logger.LogError(ex, "Error saving file {FileName} to blob storage", file.FileName);
                 result.Success = false;
                 result.ErrorMessage = "Error saving file. Please try again.";
                 return result;
             }
 
-            // Create photo entity
             var photo = new Photo
             {
                 OriginalFileName = Path.GetFileName(file.FileName),
-                StoredFileName = storedFileName,
+                StoredFileName = Path.GetFileName(storedBlobName),
                 FilePath = relativePath,
                 FileSize = file.Length,
                 MimeType = imageFormat.DefaultMimeType,
@@ -180,7 +191,6 @@ public class PhotoService : IPhotoService
                 Height = height
             };
 
-            // Save to database
             try
             {
                 await _context.Photos.AddAsync(photo);
@@ -194,17 +204,13 @@ public class PhotoService : IPhotoService
             }
             catch (Exception ex)
             {
-                // Rollback: Delete file if database save fails
                 try
                 {
-                    if (File.Exists(fullPath))
-                    {
-                        File.Delete(fullPath);
-                    }
+                    await _photoBlobStorage.DeleteAsync(storedBlobName);
                 }
                 catch (Exception deleteEx)
                 {
-                    _logger.LogError(deleteEx, "Error deleting file {FullPath} during rollback", fullPath);
+                    _logger.LogError(deleteEx, "Error deleting blob {BlobName} during rollback", storedBlobName);
                 }
 
                 _logger.LogError(ex, "Error saving photo metadata to database for {FileName}", file.FileName);
@@ -222,8 +228,32 @@ public class PhotoService : IPhotoService
         return result;
     }
 
+    private static string NormalizeBlobPath(string filePath, string storedFileName)
+    {
+        var candidate = filePath.TrimStart('/');
+
+        if (string.IsNullOrWhiteSpace(candidate))
+        {
+            return string.IsNullOrWhiteSpace(storedFileName)
+                ? "photos"
+                : $"photos/{storedFileName}";
+        }
+
+        if (candidate.StartsWith("uploads/", StringComparison.OrdinalIgnoreCase))
+        {
+            return $"photos/{Path.GetFileName(candidate)}";
+        }
+
+        if (!candidate.Contains('/'))
+        {
+            return $"photos/{candidate}";
+        }
+
+        return candidate;
+    }
+
     /// <summary>
-    /// Delete a photo by ID
+    /// Delete a photo by ID.
     /// </summary>
     public async Task<bool> DeletePhotoAsync(int id)
     {
@@ -236,22 +266,19 @@ public class PhotoService : IPhotoService
                 return false;
             }
 
-            // Delete file from disk
-            var fullPath = Path.Combine(_uploadPath, photo.StoredFileName);
+            var blobName = string.IsNullOrWhiteSpace(photo.FilePath)
+                ? $"photos/{photo.StoredFileName}"
+                : NormalizeBlobPath(photo.FilePath, photo.StoredFileName);
+
             try
             {
-                if (File.Exists(fullPath))
-                {
-                    File.Delete(fullPath);
-                }
+                await _photoBlobStorage.DeleteAsync(blobName);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deleting file {FullPath} for photo ID {PhotoId}", fullPath, id);
-                // Continue with database deletion even if file deletion fails
+                _logger.LogError(ex, "Error deleting blob for photo ID {PhotoId}", id);
             }
 
-            // Delete from database
             _context.Photos.Remove(photo);
             await _context.SaveChangesAsync();
 

@@ -1,4 +1,5 @@
 using Azure.Identity;
+using Azure.Storage.Blobs;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.Extensions.Configuration.AzureAppConfiguration;
 using Microsoft.EntityFrameworkCore;
@@ -25,6 +26,25 @@ if (!string.IsNullOrWhiteSpace(keyVaultUri))
 }
 
 builder.Services.AddAzureAppConfiguration();
+
+var configuredServiceUri = builder.Configuration["Storage:ServiceUri"];
+var configuredAccountName = builder.Configuration["Storage:AccountName"] ?? builder.Configuration["StorageAccountName"];
+
+if (!string.IsNullOrWhiteSpace(configuredServiceUri) && !configuredServiceUri.Contains("{", StringComparison.Ordinal))
+{
+    builder.Services.AddSingleton(new BlobServiceClient(new Uri(configuredServiceUri), credential));
+    builder.Services.AddSingleton<IPhotoBlobStorage, AzurePhotoBlobStorage>();
+}
+else if (!string.IsNullOrWhiteSpace(configuredAccountName) && !configuredAccountName.Contains("{", StringComparison.Ordinal))
+{
+    var storageUri = $"https://{configuredAccountName}.blob.core.windows.net";
+    builder.Services.AddSingleton(new BlobServiceClient(new Uri(storageUri), credential));
+    builder.Services.AddSingleton<IPhotoBlobStorage, AzurePhotoBlobStorage>();
+}
+else
+{
+    builder.Services.AddSingleton<IPhotoBlobStorage, LocalPhotoBlobStorage>();
+}
 
 // Add services to the container.
 builder.Services.AddRazorPages();
@@ -60,13 +80,6 @@ builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(optio
 
 var app = builder.Build();
 
-// Ensure uploads directory exists
-var uploadsPath = Path.Combine(app.Environment.ContentRootPath, "wwwroot", "uploads");
-if (!Directory.Exists(uploadsPath))
-{
-    Directory.CreateDirectory(uploadsPath);
-}
-
 // Run database migrations on startup in all environments (skip only when flagged as test)
 var isTestEnvironment = app.Configuration.GetValue<bool>("IsTestEnvironment");
 if (!isTestEnvironment)
@@ -85,28 +98,23 @@ if (!isTestEnvironment)
     }
 }
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
 
-// Enable static files with cache headers
 app.UseStaticFiles(new Microsoft.AspNetCore.Builder.StaticFileOptions
 {
     OnPrepareResponse = ctx =>
     {
-        // Cache static files for 1 hour
         ctx.Context.Response.Headers.Append("Cache-Control", "public,max-age=3600");
     }
 });
 
 app.UseRouting();
-
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -116,5 +124,4 @@ app.MapRazorPages()
 
 app.Run();
 
-// Make the implicit Program class public for testing
 public partial class Program { }

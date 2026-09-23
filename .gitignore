@@ -48,6 +48,10 @@ artifacts/
 # ASP.NET Scaffolding
 ScaffoldingReadMe.txt
 
+# Local fallback storage for the Blob-backed photo app
+storage-fallback/
+PhotoAlbum/storage-fallback/
+
 # Files built by Visual Studio
 *_i.c
 *_p.c
@@ -238,8 +242,6 @@ MigrationBackup/
 .ionide/
 
 # Uploaded photos - exclude from git but keep directory
-PhotoAlbum/wwwroot/uploads/*
-!PhotoAlbum/wwwroot/uploads/.gitkeep
 
 /.appmod/
 

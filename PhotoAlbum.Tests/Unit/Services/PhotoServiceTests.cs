@@ -39,7 +39,7 @@ public class PhotoServiceTests : IDisposable
             {"FileUpload:AllowedMimeTypes:1", "image/png"},
             {"FileUpload:AllowedMimeTypes:2", "image/gif"},
             {"FileUpload:AllowedMimeTypes:3", "image/webp"},
-            {"FileUpload:UploadPath", _tempUploadPath}
+            {"Storage:FallbackRootPath", _tempUploadPath}
         };
         _configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(inMemorySettings!)
@@ -120,7 +120,7 @@ public class PhotoServiceTests : IDisposable
         // Verify file exists
         var photo = await _context.Photos.FindAsync(result.PhotoId);
         Assert.NotNull(photo);
-        var fullPath = Path.Combine(_tempUploadPath, photo.StoredFileName);
+        var fullPath = Path.Combine(_tempUploadPath, "photos", photo.StoredFileName);
         Assert.True(File.Exists(fullPath));
     }
 
@@ -153,7 +153,7 @@ public class PhotoServiceTests : IDisposable
         {
             OriginalFileName = "first.jpg",
             StoredFileName = "guid1.jpg",
-            FilePath = "/uploads/guid1.jpg",
+            FilePath = "/photos/guid1.jpg",
             FileSize = 1024,
             MimeType = "image/jpeg",
             UploadedAt = DateTime.UtcNow.AddHours(-2)
@@ -162,7 +162,7 @@ public class PhotoServiceTests : IDisposable
         {
             OriginalFileName = "second.jpg",
             StoredFileName = "guid2.jpg",
-            FilePath = "/uploads/guid2.jpg",
+            FilePath = "/photos/guid2.jpg",
             FileSize = 2048,
             MimeType = "image/jpeg",
             UploadedAt = DateTime.UtcNow.AddHours(-1)
@@ -171,7 +171,7 @@ public class PhotoServiceTests : IDisposable
         {
             OriginalFileName = "third.jpg",
             StoredFileName = "guid3.jpg",
-            FilePath = "/uploads/guid3.jpg",
+            FilePath = "/photos/guid3.jpg",
             FileSize = 3072,
             MimeType = "image/jpeg",
             UploadedAt = DateTime.UtcNow
@@ -199,7 +199,7 @@ public class PhotoServiceTests : IDisposable
         var photoId = uploadResult.PhotoId!.Value;
 
         var photo = await _context.Photos.FindAsync(photoId);
-        var fullPath = Path.Combine(_tempUploadPath, photo!.StoredFileName);
+        var fullPath = Path.Combine(_tempUploadPath, "photos", photo!.StoredFileName);
 
         // Act
         var result = await _photoService.DeletePhotoAsync(photoId);

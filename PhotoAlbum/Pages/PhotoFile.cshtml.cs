@@ -5,36 +5,27 @@ using PhotoAlbum.Services;
 namespace PhotoAlbum.Pages;
 
 /// <summary>
-/// Page model for serving photo files with indirect access
+/// Page model for serving photo files from Azure Blob Storage or the local fallback.
 /// </summary>
 public class PhotoFileModel : PageModel
 {
     private readonly IPhotoService _photoService;
+    private readonly IPhotoBlobStorage _photoBlobStorage;
     private readonly ILogger<PhotoFileModel> _logger;
-    private readonly IConfiguration _configuration;
-    private readonly string _uploadPath;
 
-    /// <summary>
-    /// Initializes a new instance of the PhotoFileModel class
-    /// </summary>
-    /// <param name="photoService">Service for photo operations</param>
-    /// <param name="configuration">Configuration instance</param>
-    /// <param name="logger">Logger instance</param>
-    public PhotoFileModel(IPhotoService photoService, IConfiguration configuration, ILogger<PhotoFileModel> logger)
+    public PhotoFileModel(
+        IPhotoService photoService,
+        IPhotoBlobStorage photoBlobStorage,
+        ILogger<PhotoFileModel> logger)
     {
         _photoService = photoService;
-        _configuration = configuration;
+        _photoBlobStorage = photoBlobStorage;
         _logger = logger;
-
-        _uploadPath = _configuration["FileUpload:UploadPath"]
-            ?? throw new InvalidOperationException("FileUpload:UploadPath is not configured.");
     }
 
     /// <summary>
-    /// Serves a photo file by ID
+    /// Serves a photo file by ID.
     /// </summary>
-    /// <param name="id">The ID of the photo to serve</param>
-    /// <returns>File result with the photo, or NotFound if photo doesn't exist</returns>
     public async Task<IActionResult> OnGetAsync(int? id)
     {
         if (id == null)
@@ -53,25 +44,30 @@ public class PhotoFileModel : PageModel
                 return NotFound();
             }
 
-            // Construct the physical file path
-            // photo.FilePath is stored as "/uploads/filename.jpg"
-            // We need to read from "wwwroot/uploads/filename.jpg"
-            var fileName = Path.GetFileName(photo.FilePath);
-            var filePath = Path.Combine(Directory.GetCurrentDirectory(), _uploadPath, fileName);
+            var blobName = string.IsNullOrWhiteSpace(photo.FilePath)
+                ? $"photos/{photo.StoredFileName}"
+                : NormalizeBlobPath(photo.FilePath, photo.StoredFileName);
 
-            if (!System.IO.File.Exists(filePath))
+            byte[] fileBytes;
+            try
             {
-                _logger.LogError("Physical file not found for photo ID {PhotoId} at path {FilePath}", id, filePath);
+                fileBytes = await _photoBlobStorage.DownloadAsync(blobName);
+            }
+            catch (FileNotFoundException)
+            {
+                _logger.LogWarning("Blob not found for photo ID {PhotoId} with blob name {BlobName}", id, blobName);
                 return NotFound();
             }
-
-            var fileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
+            catch (Azure.RequestFailedException ex) when (ex.Status == 404)
+            {
+                _logger.LogWarning(ex, "Blob not found for photo ID {PhotoId} with blob name {BlobName}", id, blobName);
+                return NotFound();
+            }
 
             _logger.LogDebug("Serving photo ID {PhotoId} ({FileName}, {FileSize} bytes)",
                 id, photo.OriginalFileName, fileBytes.Length);
 
-            // Return the file with appropriate content type and enable caching
-            Response.Headers.CacheControl = "public,max-age=31536000"; // Cache for 1 year
+            Response.Headers.CacheControl = "public,max-age=31536000";
             Response.Headers.ETag = $"\"{photo.Id}-{photo.UploadedAt.Ticks}\"";
 
             return File(fileBytes, photo.MimeType);
@@ -81,5 +77,29 @@ public class PhotoFileModel : PageModel
             _logger.LogError(ex, "Error serving photo with ID {PhotoId}", id);
             return StatusCode(500);
         }
+    }
+
+    private static string NormalizeBlobPath(string filePath, string storedFileName)
+    {
+        var candidate = filePath.TrimStart('/');
+
+        if (string.IsNullOrWhiteSpace(candidate))
+        {
+            return string.IsNullOrWhiteSpace(storedFileName)
+                ? "photos"
+                : $"photos/{storedFileName}";
+        }
+
+        if (candidate.StartsWith("uploads/", StringComparison.OrdinalIgnoreCase))
+        {
+            return $"photos/{Path.GetFileName(candidate)}";
+        }
+
+        if (!candidate.Contains('/'))
+        {
+            return $"photos/{candidate}";
+        }
+
+        return candidate;
     }
 }

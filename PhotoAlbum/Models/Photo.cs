@@ -27,7 +27,7 @@ public class Photo
     public string StoredFileName { get; set; } = string.Empty;
 
     /// <summary>
-    /// Relative path from wwwroot (e.g., /uploads/abc123.jpg)
+    /// Relative blob path (e.g., /photos/abc123.jpg)
     /// </summary>
     [Required]
     [MaxLength(500)]

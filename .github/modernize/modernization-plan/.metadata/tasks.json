@@ -23,7 +23,7 @@
     {
       "type": "transform",
       "id": "002-transform-config-and-secrets",
-      "status": "started",
+      "status": "success",
       "description": "Externalize app configuration and sensitive settings from local files into Azure-managed configuration. Addresses issues: Local application configuration detected; Connection string is detected; Connection strings without configuration builders detected; Hardcoded sensitive data detected.",
       "requirements": "Move non-secret and secret settings out of appsettings.json, Web.config, and environment-local configuration so the application reads values from Azure-managed configuration sources instead of source-controlled files. Use Azure App Configuration or environment variables for non-secret settings and Key Vault or equivalent managed secret storage for credentials and database connection values. Preserve the existing Razor Pages and EF Core behaviors while removing direct local configuration dependencies.",
       "reason": "The current app stores connection strings and settings locally, which is incompatible with secure cloud deployment.",
@@ -31,6 +31,11 @@
         "passBuild": "true",
         "passUnitTests": "true"
       },
+      "successCriteriaStatus": {
+        "passBuild": "true",
+        "passUnitTests": "true"
+      },
+      "taskSummary": "Configured Azure App Configuration and Key Vault integration, removed the local-only connection string path, and kept the app build/test suite green.",
       "skills": [
         {
           "name": "migration-local-appsettings-azure-app-configuration",
@@ -45,6 +50,7 @@
     {
       "type": "transform",
       "id": "003-transform-photo-storage-to-blob",
+      "status": "started",
       "description": "Replace local disk-based photo uploads and static asset access with Azure Blob Storage-backed content delivery. Addresses issues: Local or network IO operations detected; Static content detected.",
       "requirements": "Move photo upload and retrieval flows from the local wwwroot/uploads folder to Azure Blob Storage while preserving upload validation, metadata capture, and photo retrieval behavior. Keep the existing gallery experience stable and ensure the application uses Azure-safe storage patterns without hard-coded local paths.",
       "reason": "Photo uploads currently write directly to local disk and are not cloud-ready.",
