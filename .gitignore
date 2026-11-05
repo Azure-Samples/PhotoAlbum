@@ -248,3 +248,5 @@ PhotoAlbum/wwwroot/uploads/*
 
 # Azure Developer CLI
 .azure/
+
+.DS_Store
